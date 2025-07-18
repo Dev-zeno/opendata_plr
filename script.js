@@ -1,4 +1,3 @@
-const publicApiKey = "80j%2FK4JyieJVqIy2fT0qM5ziOrx42wpgHUNb%2BKZQOQ8fGYSohlz2aUfwIBnGQYO38KXJ2szvUBa%2FCOX2W95PuQ%3D%3D";
 const map = new naver.maps.Map('map', {
     center: new naver.maps.LatLng(37.5665, 126.9780),
     zoom: 10
@@ -7,46 +6,52 @@ const map = new naver.maps.Map('map', {
 let allLibraries = [];
 let markers = [];
 
-function fetchLibraries() {
+async function fetchLibraries() {
     const statusDiv = document.getElementById('status');
     statusDiv.innerHTML = '도서관 데이터를 불러오는 중입니다...';
-    const libraryInfoUrl = `https://apis.data.go.kr/B551982/plr/info?serviceKey=${publicApiKey}&pageNo=1&numOfRows=1000&type=json`;
-    const readingRoomUrl = `https://apis.data.go.kr/B551982/plr/rlt_rdrm_info?serviceKey=${publicApiKey}&pageNo=1&numOfRows=1000&type=json`;
+    const libraryInfoUrl = '/api/proxy'; // 프록시 엔드포인트
+    const readingRoomUrl = '/api/proxy-reading-room'; // 프록시 엔드포인트
 
-    return Promise.all([fetch(libraryInfoUrl), fetch(readingRoomUrl)])
-        .then(responses => Promise.all(responses.map(res => res.json())))
-        .then(([libraryData, readingRoomData]) => {
-            if (libraryData && libraryData.body && libraryData.body.item && readingRoomData && readingRoomData.body && readingRoomData.body.item) {
-                const validLibraries = libraryData.body.item.filter(lib => lib.pblibId && String(lib.pblibId).trim() !== '' && lib.stdgCd && String(lib.stdgCd).trim() !== '');
-                const validReadingRooms = readingRoomData.body.item.filter(room => room.pblibId && String(room.pblibId).trim() !== '' && room.stdgCd && String(room.stdgCd).trim() !== '');
+    try {
+        const [libraryResponse, readingRoomResponse] = await Promise.all([
+            fetch(libraryInfoUrl),
+            fetch(readingRoomUrl)
+        ]);
+        const [libraryData, readingRoomData] = await Promise.all([
+            libraryResponse.json(),
+            readingRoomResponse.json()
+        ]);
 
-                const readingRoomMap = new Map();
-                validReadingRooms.forEach(room => {
-                    const key = `${String(room.stdgCd).trim()}_${String(room.pblibId).trim()}`;
-                    if (!readingRoomMap.has(key)) {
-                        readingRoomMap.set(key, []);
-                    }
-                    readingRoomMap.get(key).push(room);
-                });
+        if (libraryData?.body?.item && readingRoomData?.body?.item) {
+            const validLibraries = libraryData.body.item.filter(lib => lib.pblibId && String(lib.pblibId).trim() !== '' && lib.stdgCd && String(lib.stdgCd).trim() !== '');
+            const validReadingRooms = readingRoomData.body.item.filter(room => room.pblibId && String(room.pblibId).trim() !== '' && room.stdgCd && String(room.stdgCd).trim() !== '');
 
-                allLibraries = validLibraries.map(lib => {
-                    const key = `${String(lib.stdgCd).trim()}_${String(lib.pblibId).trim()}`;
-                    return {
-                        ...lib,
-                        readingRooms: readingRoomMap.get(key) || []
-                    };
-                });
-                statusDiv.innerHTML = `${allLibraries.length}개의 도서관 데이터를 불러왔습니다.`;
-                displayLibraries(allLibraries);
-            } else {
-                console.error('Error: Unexpected data structure in API response.');
-                statusDiv.innerHTML = '데이터를 불러오는 데 실패했습니다. API 응답 구조를 확인하세요.';
-            }
-        })
-        .catch(error => {
-            console.error('Error fetching library data:', error);
-            statusDiv.innerHTML = '데이터를 불러오는 중 오류가 발생했습니다.';
-        });
+            const readingRoomMap = new Map();
+            validReadingRooms.forEach(room => {
+                const key = `${String(room.stdgCd).trim()}_${String(room.pblibId).trim()}`;
+                if (!readingRoomMap.has(key)) {
+                    readingRoomMap.set(key, []);
+                }
+                readingRoomMap.get(key).push(room);
+            });
+
+            allLibraries = validLibraries.map(lib => {
+                const key = `${String(lib.stdgCd).trim()}_${String(lib.pblibId).trim()}`;
+                return {
+                    ...lib,
+                    readingRooms: readingRoomMap.get(key) || []
+                };
+            });
+            statusDiv.innerHTML = `${allLibraries.length}개의 도서관 데이터를 불러왔습니다.`;
+            displayLibraries(allLibraries);
+        } else {
+            console.error('Error: Unexpected data structure in API response.');
+            statusDiv.innerHTML = '데이터를 불러오는 데 실패했습니다. API 응답 구조를 확인하세요.';
+        }
+    } catch (error) {
+        console.error('Error fetching library data:', error);
+        statusDiv.innerHTML = '데이터를 불러오는 중 오류가 발생했습니다.';
+    }
 }
 
 function displayLibraries(libraries) {
@@ -85,7 +90,6 @@ function displayLibraries(libraries) {
 
             naver.maps.Event.addListener(marker, 'click', function(e) {
                 openInfoWindow(marker, lib);
-                // Stop event propagation to prevent the map click listener from firing
                 naver.maps.Event.stop(e);
             });
             markers.push(marker);
@@ -124,7 +128,7 @@ function displayLibraries(libraries) {
 
 function createBubbleButtons() {
     const bubbleContainer = document.getElementById('bubble-container');
-    bubbleContainer.innerHTML = ''; // Clear previous buttons
+    bubbleContainer.innerHTML = '';
     const addressPrefixes = new Set();
     allLibraries.forEach(lib => {
         if (lib.pblibRoadNmAddr) {
