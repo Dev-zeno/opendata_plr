@@ -7,7 +7,7 @@ module.exports = async (req, res) => {
     const response = await axios.get(url);
     res.status(200).json(response.data);
   } catch (error) {
-    console.error('Proxy error:', error);
-    res.status(500).json({ error: 'Failed to fetch data' });
+    console.error('Proxy error for library info:', error);
+    res.status(500).json({ error: 'Failed to fetch library data' });
   }
 };
