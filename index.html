@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>전국 공공도서관 열람실 현황</title>
+    <link rel="stylesheet" href="style.css">
+    <script type="text/javascript" src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=hgte1ya8vs"></script>
+</head>
+<body>
+    <body>
+    <div id="sidebar">
+        <h1>전국 공공도서관 열람실 현황</h1>
+        <div class="search-container">
+            <input type="text" id="search-input" placeholder="도서관 이름 또는 지역명 검색">
+            <button id="search-button">검색</button>
+        </div>
+        <div id="bubble-container"></div>
+        <div id="search-results"></div>
+    </div>
+    <div id="map-container">
+        <button id="sidebar-toggle">◀</button>
+        <div id="map"></div>
+    </div>
+    <div id="status"></div>
+    <script src="script.js"></script>
+</body>
+</html>

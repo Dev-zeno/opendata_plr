@@ -1,0 +1,136 @@
+body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    margin: 0;
+    height: 100vh;
+    overflow: hidden;
+}
+
+#sidebar {
+    width: 350px;
+    height: 100%;
+    background-color: #f8f9fa;
+    border-right: 1px solid #dee2e6;
+    display: flex;
+    flex-direction: column;
+    transition: width 0.3s;
+    overflow-y: auto;
+}
+
+#sidebar.collapsed {
+    width: 0;
+}
+
+.search-container {
+    padding: 10px;
+    border-bottom: 1px solid #dee2e6;
+}
+
+#search-input {
+    width: calc(100% - 100px);
+    padding: 8px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+}
+
+#search-button {
+    padding: 8px 12px;
+    border: none;
+    background-color: #007bff;
+    color: white;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+#search-results {
+    flex-grow: 1;
+    overflow-y: auto;
+}
+
+.result-item {
+    padding: 10px;
+    border-bottom: 1px solid #e9ecef;
+    cursor: pointer;
+}
+
+.result-item:hover {
+    background-color: #e9ecef;
+}
+
+.result-item h5 {
+    margin: 0 0 5px 0;
+}
+
+.result-item p {
+    margin: 0;
+    font-size: 14px;
+    color: #6c757d;
+}
+
+#map-container {
+    flex-grow: 1;
+    position: relative;
+}
+
+#map {
+    width: 100%;
+    height: 100%;
+}
+
+#sidebar-toggle {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    transform: translateY(-50%);
+    width: 20px;
+    height: 50px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    cursor: pointer;
+    z-index: 1001;
+    border-radius: 0 4px 4px 0;
+    padding: 0;
+    font-size: 16px;
+}
+
+#sidebar h1 {
+    font-size: 20px;
+    text-align: center;
+    padding: 15px 0;
+    margin: 0;
+    border-bottom: 1px solid #dee2e6;
+}
+
+#bubble-container {
+    padding: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.bubble-button {
+    padding: 8px 16px;
+    background-color: white;
+    border: 1px solid #ced4da;
+    border-radius: 20px;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.bubble-button:hover {
+    background-color: #f1f3f5;
+}
+
+#status {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 5px;
+    text-align: center;
+    z-index: 1002;
+}
