@@ -6,52 +6,46 @@ const map = new naver.maps.Map('map', {
 let allLibraries = [];
 let markers = [];
 
-async function fetchLibraries() {
+function fetchLibraries() {
     const statusDiv = document.getElementById('status');
     statusDiv.innerHTML = '도서관 데이터를 불러오는 중입니다...';
-    const libraryInfoUrl = '/api/proxy'; // 프록시 엔드포인트
-    const readingRoomUrl = '/api/proxy-reading-room'; // 프록시 엔드포인트
+    const libraryInfoUrl = `/api/proxy`;
+    const readingRoomUrl = `/api/proxy-reading-room`;
 
-    try {
-        const [libraryResponse, readingRoomResponse] = await Promise.all([
-            fetch(libraryInfoUrl),
-            fetch(readingRoomUrl)
-        ]);
-        const [libraryData, readingRoomData] = await Promise.all([
-            libraryResponse.json(),
-            readingRoomResponse.json()
-        ]);
+    return Promise.all([fetch(libraryInfoUrl), fetch(readingRoomUrl)])
+        .then(responses => Promise.all(responses.map(res => res.json())))
+        .then(([libraryData, readingRoomData]) => {
+            if (libraryData && libraryData.body && libraryData.body.item && readingRoomData && readingRoomData.body && readingRoomData.body.item) {
+                const validLibraries = libraryData.body.item.filter(lib => lib.pblibId && String(lib.pblibId).trim() !== '' && lib.stdgCd && String(lib.stdgCd).trim() !== '');
+                const validReadingRooms = readingRoomData.body.item.filter(room => room.pblibId && String(room.pblibId).trim() !== '' && room.stdgCd && String(room.stdgCd).trim() !== '');
 
-        if (libraryData?.body?.item && readingRoomData?.body?.item) {
-            const validLibraries = libraryData.body.item.filter(lib => lib.pblibId && String(lib.pblibId).trim() !== '' && lib.stdgCd && String(lib.stdgCd).trim() !== '');
-            const validReadingRooms = readingRoomData.body.item.filter(room => room.pblibId && String(room.pblibId).trim() !== '' && room.stdgCd && String(room.stdgCd).trim() !== '');
+                const readingRoomMap = new Map();
+                validReadingRooms.forEach(room => {
+                    const key = `${String(room.stdgCd).trim()}_${String(room.pblibId).trim()}`;
+                    if (!readingRoomMap.has(key)) {
+                        readingRoomMap.set(key, []);
+                    }
+                    readingRoomMap.get(key).push(room);
+                });
 
-            const readingRoomMap = new Map();
-            validReadingRooms.forEach(room => {
-                const key = `${String(room.stdgCd).trim()}_${String(room.pblibId).trim()}`;
-                if (!readingRoomMap.has(key)) {
-                    readingRoomMap.set(key, []);
-                }
-                readingRoomMap.get(key).push(room);
-            });
-
-            allLibraries = validLibraries.map(lib => {
-                const key = `${String(lib.stdgCd).trim()}_${String(lib.pblibId).trim()}`;
-                return {
-                    ...lib,
-                    readingRooms: readingRoomMap.get(key) || []
-                };
-            });
-            statusDiv.innerHTML = `${allLibraries.length}개의 도서관 데이터를 불러왔습니다.`;
-            displayLibraries(allLibraries);
-        } else {
-            console.error('Error: Unexpected data structure in API response.');
-            statusDiv.innerHTML = '데이터를 불러오는 데 실패했습니다. API 응답 구조를 확인하세요.';
-        }
-    } catch (error) {
-        console.error('Error fetching library data:', error);
-        statusDiv.innerHTML = '데이터를 불러오는 중 오류가 발생했습니다.';
-    }
+                allLibraries = validLibraries.map(lib => {
+                    const key = `${String(lib.stdgCd).trim()}_${String(lib.pblibId).trim()}`;
+                    return {
+                        ...lib,
+                        readingRooms: readingRoomMap.get(key) || []
+                    };
+                });
+                statusDiv.innerHTML = `${allLibraries.length}개의 도서관 데이터를 불러왔습니다.`;
+                displayLibraries(allLibraries);
+            } else {
+                console.error('Error: Unexpected data structure in API response.');
+                statusDiv.innerHTML = '데이터를 불러오는 데 실패했습니다. API 응답 구조를 확인하세요.';
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching library data:', error);
+            statusDiv.innerHTML = '데이터를 불러오는 중 오류가 발생했습니다.';
+        });
 }
 
 function displayLibraries(libraries) {
@@ -90,6 +84,7 @@ function displayLibraries(libraries) {
 
             naver.maps.Event.addListener(marker, 'click', function(e) {
                 openInfoWindow(marker, lib);
+                // Stop event propagation to prevent the map click listener from firing
                 naver.maps.Event.stop(e);
             });
             markers.push(marker);
@@ -128,7 +123,7 @@ function displayLibraries(libraries) {
 
 function createBubbleButtons() {
     const bubbleContainer = document.getElementById('bubble-container');
-    bubbleContainer.innerHTML = '';
+    bubbleContainer.innerHTML = ''; // Clear previous buttons
     const addressPrefixes = new Set();
     allLibraries.forEach(lib => {
         if (lib.pblibRoadNmAddr) {
@@ -166,20 +161,79 @@ document.getElementById('search-input').addEventListener('keyup', (event) => {
     }
 });
 
+// 모바일에서 검색 입력 시 실시간 검색
+document.getElementById('search-input').addEventListener('input', () => {
+    const isMobile = window.innerWidth <= 768;
+    if (isMobile) {
+        // 모바일에서는 입력 시 바로 검색 (디바운싱 적용)
+        clearTimeout(window.searchTimeout);
+        window.searchTimeout = setTimeout(() => {
+            performSearch();
+        }, 300);
+    }
+});
+
 document.getElementById('sidebar-toggle').addEventListener('click', () => {
     const sidebar = document.getElementById('sidebar');
     const toggleButton = document.getElementById('sidebar-toggle');
+    const isMobile = window.innerWidth <= 768;
+    
     sidebar.classList.toggle('collapsed');
-    if (sidebar.classList.contains('collapsed')) {
-        toggleButton.textContent = '▶';
+    
+    if (isMobile) {
+        // 모바일에서는 상하 화살표 사용
+        if (sidebar.classList.contains('collapsed')) {
+            toggleButton.textContent = '▲';
+        } else {
+            toggleButton.textContent = '▼';
+        }
+    } else {
+        // 데스크톱에서는 좌우 화살표 사용
+        if (sidebar.classList.contains('collapsed')) {
+            toggleButton.textContent = '▶';
+        } else {
+            toggleButton.textContent = '◀';
+        }
+    }
+});
+
+// 화면 크기 변경 시 토글 버튼 아이콘 업데이트
+window.addEventListener('resize', () => {
+    const sidebar = document.getElementById('sidebar');
+    const toggleButton = document.getElementById('sidebar-toggle');
+    const isMobile = window.innerWidth <= 768;
+    
+    if (isMobile) {
+        if (sidebar.classList.contains('collapsed')) {
+            toggleButton.textContent = '▲';
+        } else {
+            toggleButton.textContent = '▼';
+        }
+    } else {
+        if (sidebar.classList.contains('collapsed')) {
+            toggleButton.textContent = '▶';
+        } else {
+            toggleButton.textContent = '◀';
+        }
+    }
+});
+
+// 초기 토글 버튼 아이콘 설정
+function setInitialToggleIcon() {
+    const toggleButton = document.getElementById('sidebar-toggle');
+    const isMobile = window.innerWidth <= 768;
+    
+    if (isMobile) {
+        toggleButton.textContent = '▼';
     } else {
         toggleButton.textContent = '◀';
     }
-});
+}
 
 async function initialize() {
     await fetchLibraries();
     createBubbleButtons();
+    setInitialToggleIcon();
 }
 
 initialize();
