@@ -234,6 +234,69 @@ async function initialize() {
     await fetchLibraries();
     createBubbleButtons();
     setInitialToggleIcon();
+    addDragInteractions();
+}
+
+function addDragInteractions() {
+    const sidebar = document.getElementById('sidebar');
+    const sidebarHeader = sidebar.querySelector('h1');
+    let startY = 0;
+    let initialSidebarY = 0;
+    let isDragging = false;
+
+    function onDragStart(e) {
+        isDragging = true;
+        startY = e.clientY || e.touches[0].clientY;
+        initialSidebarY = sidebar.offsetTop;
+        sidebar.style.transition = 'none';
+        document.body.style.userSelect = 'none'; // 드래그 중 텍스트 선택 방지
+    }
+
+    function onDragMove(e) {
+        if (!isDragging) return;
+        const currentY = e.clientY || e.touches[0].clientY;
+        const deltaY = currentY - startY;
+        let newTop = initialSidebarY + deltaY;
+
+        const maxHeight = window.innerHeight - 50;
+        if (newTop < 50) newTop = 50;
+        if (newTop > maxHeight) newTop = maxHeight;
+
+        sidebar.style.top = `${newTop}px`;
+    }
+
+    function onDragEnd() {
+        if (!isDragging) return;
+        isDragging = false;
+        sidebar.style.transition = 'top 0.3s ease';
+        document.body.style.userSelect = '';
+
+        const endY = sidebar.offsetTop;
+        const toggleButton = document.getElementById('sidebar-toggle');
+        const openPosition = window.innerHeight * 0.4; // 40vh
+        const closePosition = window.innerHeight - 50; // 하단에 핸들만 보이도록
+
+        // 사용자가 드래그를 놓은 위치가 열린 상태와 닫힌 상태의 중간보다 위쪽에 가까우면 열고, 아니면 닫습니다.
+        const decisionPoint = (openPosition + closePosition) / 2;
+
+        if (endY < decisionPoint) {
+            sidebar.style.top = `${openPosition}px`;
+            sidebar.classList.remove('collapsed');
+            toggleButton.textContent = '▼';
+        } else {
+            sidebar.style.top = `${closePosition}px`;
+            sidebar.classList.add('collapsed');
+            toggleButton.textContent = '▲';
+        }
+    }
+
+    sidebarHeader.addEventListener('mousedown', onDragStart);
+    document.addEventListener('mousemove', onDragMove);
+    document.addEventListener('mouseup', onDragEnd);
+
+    sidebarHeader.addEventListener('touchstart', onDragStart);
+    document.addEventListener('touchmove', onDragMove);
+    document.addEventListener('touchend', onDragEnd);
 }
 
 initialize();
