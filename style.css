@@ -98,6 +98,60 @@ body {
     font-size: 20px;
     text-align: center;
     padding: 15px 0;
+}
+
+.info-window-content {
+    padding: 15px;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    line-height: 1.6;
+    max-width: 300px;
+}
+
+.info-window-content h5 {
+    font-size: 18px;
+    font-weight: bold;
+    color: #333;
+    margin: 0 0 10px 0;
+    border-bottom: 2px solid #007bff;
+    padding-bottom: 5px;
+}
+
+.info-window-content p {
+    font-size: 14px;
+    color: #555;
+    margin: 0 0 5px 0;
+}
+
+.info-window-content h6 {
+    font-size: 16px;
+    font-weight: bold;
+    color: #333;
+    margin: 15px 0 10px 0;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 5px;
+}
+
+.info-window-content ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.info-window-content li {
+    font-size: 14px;
+    color: #555;
+    background-color: #f9f9f9;
+    border: 1px solid #eee;
+    padding: 8px 12px;
+    margin-bottom: 5px;
+    border-radius: 4px;
+}
+
+@media (max-width: 600px) {
+    .info-window-content {
+        max-width: 250px;
+    }
+}
     margin: 0;
     border-bottom: 1px solid #dee2e6;
 }

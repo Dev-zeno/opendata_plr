@@ -104,10 +104,10 @@ function displayLibraries(libraries) {
         }
 
         const content = [
-            '<div style="padding:10px; width: 400px">',
-            `   <h5><b>${lib.pblibNm}</b></h5>`,
-            `   <p>주소: ${lib.pblibRoadNmAddr}<br />`,
-            `   전화번호: ${lib.pblibTelno || '정보 없음'}</p>`,
+            '<div class="info-window-content">',
+            `   <h5>${lib.pblibNm}</h5>`,
+            `   <p>주소: ${lib.pblibRoadNmAddr}</p>`,
+            `   <p>전화번호: ${lib.pblibTelno || '정보 없음'}</p>`,
             readingRoomInfo,
             '</div>'
         ].join('');
