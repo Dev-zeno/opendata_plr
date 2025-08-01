@@ -119,7 +119,14 @@ body {
 .info-window-content p {
     font-size: 14px;
     color: #555;
-    margin: 0 0 5px 0;
+    margin: 0 0 8px 0;
+    display: flex;
+    align-items: center;
+}
+
+.info-window-content p i {
+    margin-right: 8px;
+    color: #007bff;
 }
 
 .info-window-content h6 {
@@ -170,7 +177,7 @@ body {
 }
 
 .reading-room-seats .count {
-    font-size: 16px;
+    font-size: 20px;
     font-weight: bold;
     color: #007bff;
 }
@@ -179,9 +186,6 @@ body {
     .info-window-content {
         max-width: 250px;
     }
-}
-    margin: 0;
-    border-bottom: 1px solid #dee2e6;
 }
 
 #bubble-container {

@@ -96,7 +96,7 @@ function displayLibraries(libraries) {
         if (lib.readingRooms && lib.readingRooms.length > 0) {
             readingRoomInfo = '<h6>열람실 정보</h6><ul>';
             lib.readingRooms.forEach(room => {
-                readingRoomInfo += `<li><span class="reading-room-name">${room.rdrmNm}</span><div class="reading-room-seats"><span class="status">좌석현황</span><br><span class="count">${room.rmndSeatCnt} / ${room.tseatCnt}</span></div></li>`;
+                readingRoomInfo += `<li><span class="reading-room-name">${room.rdrmNm}</span><div class="reading-room-seats"><span class="status">잔여 좌석현황</span><br><span class="count">${room.rmndSeatCnt} / ${room.tseatCnt}</span></div></li>`;
             });
             readingRoomInfo += '</ul>';
         } else {
@@ -106,8 +106,8 @@ function displayLibraries(libraries) {
         const content = [
             '<div class="info-window-content">',
             `   <h5>${lib.pblibNm}</h5>`,
-            `   <p>주소: ${lib.pblibRoadNmAddr}</p>`,
-            `   <p>전화번호: ${lib.pblibTelno || '정보 없음'}</p>`,
+            `   <p><i class="fa-solid fa-map-marker-alt"></i>${lib.pblibRoadNmAddr}</p>`,
+            `   <p><i class="fa-solid fa-phone"></i>${lib.pblibTelno || '정보 없음'}</p>`,
             readingRoomInfo,
             '</div>'
         ].join('');
