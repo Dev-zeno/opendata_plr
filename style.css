@@ -167,10 +167,18 @@ body {
 .reading-room-name {
     font-weight: bold;
     color: #333;
+    flex-shrink: 1;
+    margin-right: 10px;
+    word-break: keep-all;
+}
+
+.reading-room-seats {
+    flex-shrink: 0;
 }
 
 .reading-room-seats {
     text-align: right;
+    flex-shrink: 0;
 }
 
 .reading-room-seats .status {
@@ -189,15 +197,7 @@ body {
         max-width: 250px;
     }
 
-    .info-window-content li {
-        flex-direction: column;
-        align-items: flex-start;
-    }
 
-    .reading-room-seats {
-        text-align: left;
-        margin-top: 8px;
-    }
 }
 
 #bubble-container {
