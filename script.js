@@ -106,7 +106,7 @@ function displayLibraries(libraries) {
         const content = [
             '<div class="info-window-content">',
             `   <h5>${lib.pblibNm}</h5>`,
-            `   <p><i class="fa-solid fa-map-marker-alt"></i>${lib.pblibRoadNmAddr}</p>`,
+            `   <p class="address"><i class="fa-solid fa-map-marker-alt"></i>${lib.pblibRoadNmAddr}</p>`,
             `   <p><i class="fa-solid fa-phone"></i>${lib.pblibTelno || '정보 없음'}</p>`,
             readingRoomInfo,
             '</div>'
