@@ -96,7 +96,7 @@ function displayLibraries(libraries) {
         if (lib.readingRooms && lib.readingRooms.length > 0) {
             readingRoomInfo = '<h6>열람실 정보</h6><ul>';
             lib.readingRooms.forEach(room => {
-                readingRoomInfo += `<li>${room.rdrmNm}: 총 ${room.tseatCnt}석 / 사용 ${room.useSeatCnt}석 / 잔여 ${room.rmndSeatCnt}석</li>`;
+                readingRoomInfo += `<li><span class="reading-room-name">${room.rdrmNm}</span><div class="reading-room-seats"><span class="status">좌석현황</span><br><span class="count">${room.rmndSeatCnt} / ${room.tseatCnt}</span></div></li>`;
             });
             readingRoomInfo += '</ul>';
         } else {

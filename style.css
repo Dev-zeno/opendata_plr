@@ -142,9 +142,37 @@ body {
     color: #555;
     background-color: #f9f9f9;
     border: 1px solid #eee;
-    padding: 8px 12px;
-    margin-bottom: 5px;
-    border-radius: 4px;
+    padding: 12px 15px;
+    margin-bottom: 8px;
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background-color 0.3s;
+}
+
+.info-window-content li:hover {
+    background-color: #f0f0f0;
+}
+
+.reading-room-name {
+    font-weight: bold;
+    color: #333;
+}
+
+.reading-room-seats {
+    text-align: right;
+}
+
+.reading-room-seats .status {
+    font-size: 12px;
+    color: #888;
+}
+
+.reading-room-seats .count {
+    font-size: 16px;
+    font-weight: bold;
+    color: #007bff;
 }
 
 @media (max-width: 600px) {
