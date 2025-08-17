@@ -5,6 +5,16 @@ const map = new naver.maps.Map('map', {
 
 let allLibraries = [];
 let markers = [];
+let seatMapData = {};
+
+async function fetchSeatMapData() {
+    try {
+        const response = await fetch('https://raw.githubusercontent.com/Dev-zeno/opendata_plr/refs/heads/main/library_data.json');
+        seatMapData = await response.json();
+    } catch (error) {
+        console.error('Error fetching seat map data:', error);
+    }
+}
 
 function fetchLibraries() {
     const statusDiv = document.getElementById('status');
@@ -96,7 +106,14 @@ function displayLibraries(libraries) {
         if (lib.readingRooms && lib.readingRooms.length > 0) {
             readingRoomInfo = '<h6>열람실 정보</h6><ul>';
             lib.readingRooms.forEach(room => {
-                readingRoomInfo += `<li><span class="reading-room-name">${room.rdrmNm}</span><div class="reading-room-seats"><span class="status">잔여 좌석현황</span><br><span class="count">${room.rmndSeatCnt} / ${room.tseatCnt}</span></div></li>`;
+                const pblibNm = lib.pblibNm;
+                const rdrmNm = room.rdrmNm;
+                const seatMapUrl = seatMapData[pblibNm] && seatMapData[pblibNm][rdrmNm] ? seatMapData[pblibNm][rdrmNm] : null;
+                if (seatMapUrl) {
+                    readingRoomInfo += `<li><span class="reading-room-name" data-url="${seatMapUrl}" style="cursor:pointer; text-decoration:underline;">${rdrmNm}</span><div class="reading-room-seats"><span class="status">잔여 좌석현황</span><br><span class="count">${room.rmndSeatCnt} / ${room.tseatCnt}</span></div></li>`;
+                } else {
+                    readingRoomInfo += `<li><span class="reading-room-name">${rdrmNm}</span><div class="reading-room-seats"><span class="status">잔여 좌석현황</span><br><span class="count">${room.rmndSeatCnt} / ${room.tseatCnt}</span></div></li>`;
+                }
             });
             readingRoomInfo += '</ul>';
         } else {
@@ -118,6 +135,19 @@ function displayLibraries(libraries) {
 
         infowindow.setContent(content);
         infowindow.open(map, marker);
+
+        // Add event listeners to reading room names after the infowindow is open
+        setTimeout(() => {
+            const readingRoomElements = document.querySelectorAll('.reading-room-name');
+            readingRoomElements.forEach(el => {
+                el.addEventListener('click', (event) => {
+                    const url = event.target.getAttribute('data-url');
+                    if (url) {
+                        openModal(url);
+                    }
+                });
+            });
+        }, 0);
     }
 }
 
@@ -197,6 +227,28 @@ document.getElementById('sidebar-toggle').addEventListener('click', () => {
     }
 });
 
+function openModal(url) {
+    const modalContainer = document.getElementById('modal-container');
+    const iframe = document.getElementById('seat-map-frame');
+    iframe.src = url;
+    modalContainer.classList.remove('hidden');
+}
+
+function closeModal() {
+    const modalContainer = document.getElementById('modal-container');
+    const iframe = document.getElementById('seat-map-frame');
+    iframe.src = '';
+    modalContainer.classList.add('hidden');
+}
+
+document.getElementById('modal-close').addEventListener('click', closeModal);
+document.getElementById('modal-container').addEventListener('click', (event) => {
+    if (event.target === document.getElementById('modal-container')) {
+        closeModal();
+    }
+});
+
+
 // 화면 크기 변경 시 토글 버튼 아이콘 업데이트
 window.addEventListener('resize', () => {
     const sidebar = document.getElementById('sidebar');
@@ -231,7 +283,9 @@ function setInitialToggleIcon() {
 }
 
 async function initialize() {
-    await fetchLibraries();
+    await fetchSeatMapData().then(() => {
+    fetchLibraries();
+});
     createBubbleButtons();
     setInitialToggleIcon();
     addDragInteractions();
