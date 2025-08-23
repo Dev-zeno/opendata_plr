@@ -7,32 +7,112 @@
     <meta name="keywords" content="전국, 공공도서관, 도서관, 열람실, 좌석, 실시간, 현황">
     <meta property="og:site_name" content="전국 공공도서관 열람실 현황">
     <title>전국 공공도서관 열람실 현황</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="style.css">
+    <style>body{font-family:'Noto Sans KR',sans-serif;}</style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <script type="text/javascript" src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=hgte1ya8vs"></script>
 </head>
 <body>
-    <body>
-    <div id="sidebar">
-        <h1>전국 공공도서관 열람실 현황</h1>
-        <div class="search-container">
-            <input type="text" id="search-input" placeholder="도서관 이름 또는 지역명 검색">
-            <button id="search-button">검색</button>
+    <!-- Mobile Top Search Header (Mobile Only) -->
+    <div class="mobile-search-header">
+        <div class="mobile-search-container">
+            <div class="mobile-search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" id="mobile-search-input" placeholder="도서관명 또는 지역으로 검색...">
+            </div>
         </div>
-        <div id="bubble-container"></div>
+        <div class="mobile-city-filter">
+            <div id="mobile-city-buttons" class="mobile-city-scroll"></div>
+        </div>
+    </div>
+
+    <!-- Main Sidebar (Original PC Design) -->
+    <div id="sidebar">
+        <div class="sidebar-header">
+            <h1>전국 공공도서관 실시간 좌석현황</h1>
+            <div class="search-container">
+                <div class="relative">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="search-input" placeholder="도서관명 또는 지역으로 검색...">
+                    <button id="search-button" class="hidden"></button>
+                </div>
+            </div>
+            <div class="update-info">
+                <span id="update-time">업데이트 : 오후 7:21:16</span>
+                <button id="refresh-button"><i class="fas fa-sync-alt"></i> 새로고침</button>
+            </div>
+        </div>
+        
+        <div id="filter-content">
+            <div id="city-selection-container">
+                <select id="city-select" class="hidden"></select>
+                <span class="city-select-label">시도 선택</span>
+                <div id="city-buttons"></div>
+            </div>
+            <div id="district-selection-container" class="hidden">
+                <button id="back-to-cities"><i class="fas fa-arrow-left"></i> 뒤로</button>
+                <span id="current-city-name"></span> 하위 지역
+                <div id="district-buttons"></div>
+            </div>
+        </div>
+        
+
+        
         <div id="search-results"></div>
     </div>
+
+    <!-- Map Container -->
     <div id="map-container">
-        <button id="sidebar-toggle">◀</button>
         <div id="map"></div>
+        
+        <!-- Desktop Sidebar Toggle -->
+        <button id="sidebar-toggle" class="desktop-only">◀</button>
+        
+        <!-- Mobile Bottom Sheet Toggle -->
+        <button id="mobile-toggle" class="mobile-only">
+            <i class="fas fa-list"></i>
+        </button>
+        
+        <!-- 플로팅 액션 버튼들 -->
+        <div class="floating-actions">
+            <button class="floating-btn" title="위치">
+                <i class="fas fa-crosshairs"></i>
+            </button>
+            <button class="floating-btn" title="즐겨찾기">
+                <i class="fas fa-star"></i>
+            </button>
+            <button class="floating-btn" title="레이어">
+                <i class="fas fa-layer-group"></i>
+            </button>
+        </div>
+        
+        <!-- 통계 카드 -->
+        <div class="summary-stats">
+            <div class="stat-item">
+                <span class="stat-value" id="total-libraries">15</span>
+                <span class="stat-label">전국 도서관</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-value" id="available-seats">1008</span>
+                <span class="stat-label">잔여 좌석</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-value" id="total-seats">2450</span>
+                <span class="stat-label">전체 좌석</span>
+            </div>
+        </div>
     </div>
-    <div id="status"></div>
+    
+    <!-- 모달 -->
     <div id="modal-container" class="hidden">
         <div id="modal-content">
             <span id="modal-close">&times;</span>
             <iframe id="seat-map-frame" src="" frameborder="0"></iframe>
         </div>
     </div>
+    
     <script src="script.js"></script>
 </body>
 </html>
