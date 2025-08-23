@@ -486,7 +486,7 @@ function displayLibraries(libraries) {
         if (lib.readingRooms && lib.readingRooms.length > 0) {
             lib.readingRooms.forEach(room => {
                 // Use updated seat map URL
-                const seatMapUrl = 'http://www.snlib.go.kr/sh/contents/roomStatus.do';
+                const seatMapUrl = 'https://www.snlib.go.kr/sh/contents/roomStatus.do';
                 roomRows += `
                     <li class="room-row cursor-pointer" onclick="openModal('${seatMapUrl}')">
                         <span class="room-name">${room.rdrmNm}</span>
