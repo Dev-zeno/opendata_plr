@@ -743,8 +743,12 @@ document.getElementById('city-select').addEventListener('change', function() {
 
 
 // Modal functions
+let modalTimeout = null;
+let currentModalUrl = null;
+
 function openModal(url) {
     console.log('Opening modal with URL: ' + url);
+    currentModalUrl = url;
     const modalContainer = document.getElementById('modal-container');
     const iframe = document.getElementById('seat-map-frame');
     
@@ -767,13 +771,28 @@ function openModal(url) {
     const newIframe = document.getElementById('seat-map-frame');
     const loading = modalContainer.querySelector('div[style*="display: flex"]');
     
+    // Set up 3-second timeout for HTTPS security issues
+    modalTimeout = setTimeout(() => {
+        showSecurityAlert(url);
+    }, 3000);
+    
     newIframe.onload = () => {
+        // Clear timeout if iframe loads successfully
+        if (modalTimeout) {
+            clearTimeout(modalTimeout);
+            modalTimeout = null;
+        }
         loading.style.display = 'none';
         newIframe.style.display = 'block';
     };
     
     newIframe.onerror = () => {
-        loading.innerHTML = `<i class="fas fa-exclamation-triangle text-red-500 mr-2"></i>좌석배치도를 불러올 수 없습니다.`;
+        // Clear timeout and show security alert immediately on error
+        if (modalTimeout) {
+            clearTimeout(modalTimeout);
+            modalTimeout = null;
+        }
+        showSecurityAlert(url);
     };
     
     newIframe.src = url;
@@ -782,11 +801,117 @@ function openModal(url) {
     document.getElementById('modal-close').addEventListener('click', closeModal);
 }
 
+function showSecurityAlert(url) {
+    const alertHtml = `
+        <div id="security-alert" style="
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        ">
+            <div style="
+                background: white;
+                border-radius: 12px;
+                padding: 30px;
+                max-width: 400px;
+                text-align: center;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            ">
+                <div style="margin-bottom: 20px;">
+                    <i class="fas fa-shield-alt" style="font-size: 48px; color: #f59e0b; margin-bottom: 15px;"></i>
+                    <h3 style="margin: 0 0 10px 0; color: #1f2937;">보안 문제 감지</h3>
+                    <p style="margin: 0; color: #6b7280; line-height: 1.5;">HTTPS 보안 정책으로 인해 좌석배치도를 불러올 수 없습니다.<br>새 창에서 열어보시겠습니까?</p>
+                </div>
+                <div style="display: flex; gap: 10px; justify-content: center;">
+                    <button id="wait-button" style="
+                        padding: 10px 20px;
+                        background: #6b7280;
+                        color: white;
+                        border: none;
+                        border-radius: 6px;
+                        cursor: pointer;
+                        font-size: 14px;
+                        transition: background-color 0.2s;
+                    ">기다리기</button>
+                    <button id="open-new-window-button" style="
+                        padding: 10px 20px;
+                        background: #3b82f6;
+                        color: white;
+                        border: none;
+                        border-radius: 6px;
+                        cursor: pointer;
+                        font-size: 14px;
+                        transition: background-color 0.2s;
+                    ">새창열기</button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Add alert to document body
+    document.body.insertAdjacentHTML('beforeend', alertHtml);
+    
+    // Add hover effects
+    const waitButton = document.getElementById('wait-button');
+    const openNewWindowButton = document.getElementById('open-new-window-button');
+    
+    waitButton.addEventListener('mouseenter', () => {
+        waitButton.style.backgroundColor = '#4b5563';
+    });
+    waitButton.addEventListener('mouseleave', () => {
+        waitButton.style.backgroundColor = '#6b7280';
+    });
+    
+    openNewWindowButton.addEventListener('mouseenter', () => {
+        openNewWindowButton.style.backgroundColor = '#2563eb';
+    });
+    openNewWindowButton.addEventListener('mouseleave', () => {
+        openNewWindowButton.style.backgroundColor = '#3b82f6';
+    });
+    
+    // Event listeners for buttons
+    waitButton.addEventListener('click', () => {
+        closeSecurityAlert();
+    });
+    
+    openNewWindowButton.addEventListener('click', () => {
+        window.open(url, '_blank', 'noopener,noreferrer');
+        closeSecurityAlert();
+        closeModal(); // Close the original modal as well
+    });
+}
+
+function closeSecurityAlert() {
+    const alertElement = document.getElementById('security-alert');
+    if (alertElement) {
+        alertElement.remove();
+    }
+}
+
 function closeModal() {
+    // Clear any active timeout
+    if (modalTimeout) {
+        clearTimeout(modalTimeout);
+        modalTimeout = null;
+    }
+    
+    // Close security alert if it exists
+    closeSecurityAlert();
+    
+    // Close the modal
     const modalContainer = document.getElementById('modal-container');
     const iframe = document.getElementById('seat-map-frame');
     iframe.src = '';
     modalContainer.classList.add('hidden');
+    
+    // Reset current modal URL
+    currentModalUrl = null;
 }
 
 document.getElementById('modal-close').addEventListener('click', closeModal);
