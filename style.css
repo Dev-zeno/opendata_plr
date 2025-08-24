@@ -184,25 +184,36 @@ body {
 @media (max-width: 768px) {
     #sidebar {
         position: fixed;
-        bottom: 0;
+        bottom: auto;
+        top: calc(100vh - 80px); /* 초기 위치 - 80px만 보이도록 */
         left: 0;
         width: 100%;
-        height: 65vh;
+        height: 75vh;
         background-color: #ffffff;
         border-radius: 16px 16px 0 0;
         box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
         z-index: 1000;
-        transform: translateY(calc(100% - 60px));
-        transition: transform 0.3s ease;
+        transition: none; /* 드래그 시 transition 제거 */
         overflow-y: auto;
         padding: 0;
+        will-change: transform; /* 성능 최적화 */
+        touch-action: pan-y; /* 세로 스크롤과 드래그 허용 */
+        cursor: grab; /* 드래그 가능 커서 */
+    }
+    
+    #sidebar:active {
+        cursor: grabbing;
     }
     
     #sidebar.expanded {
-        transform: translateY(0);
+        top: 25vh; /* 확장된 위치 */
     }
     
-    /* Bottom sheet handle */
+    #sidebar.collapsed {
+        top: calc(100vh - 80px); /* 축소된 위치 */
+    }
+    
+    /* Bottom sheet handle - 드래그 인디케이터 개선 */
     #sidebar::before {
         content: '';
         position: absolute;
@@ -213,7 +224,13 @@ body {
         height: 4px;
         background-color: #d1d5db;
         border-radius: 2px;
-        z-index: 1;
+        z-index: 2;
+        transition: background-color 0.2s ease;
+    }
+    
+    /* 드래그 중 핸들 색상 변경 */
+    #sidebar:active::before {
+        background-color: #9ca3af;
     }
     
     /* 모바일에서 사이드바 헤더도 스크롤에 포함 */
@@ -266,7 +283,16 @@ body {
 @media (max-width: 768px) {
     .sidebar-header {
         padding: 20px 16px 16px;
-        cursor: pointer;
+        cursor: grab; /* 드래그 가능 커서 */
+        user-select: none; /* 텍스트 선택 방지 */
+        -webkit-user-select: none;
+        position: relative;
+        min-height: 60px; /* 터치 영역 확보 */
+        touch-action: none; /* 터치 제스처 최적화 */
+    }
+    
+    .sidebar-header:active {
+        cursor: grabbing; /* 드래그 중 커서 */
     }
     
     .sidebar-header h1 {
@@ -276,6 +302,42 @@ body {
         margin: 12px 0 16px 0;
         text-align: center;
         line-height: 1.3;
+        pointer-events: none; /* h1 요소의 드래그 방해 방지 */
+        cursor: inherit; /* 부모 커서 상속 */
+    }
+    
+    /* 메인 드래그 인디케이터 바 */
+    .sidebar-header::before {
+        content: '';
+        position: absolute;
+        top: 8px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 50px;
+        height: 5px;
+        background: linear-gradient(90deg, #e5e7eb 0%, #9ca3af 50%, #e5e7eb 100%);
+        border-radius: 3px;
+        opacity: 0.8;
+        transition: opacity 0.2s ease;
+    }
+    
+    /* 드래그 중 인디케이터 강조 */
+    .sidebar-header:active::before {
+        opacity: 1;
+        background: linear-gradient(90deg, #9ca3af 0%, #6b7280 50%, #9ca3af 100%);
+    }
+    
+    /* 서브 드래그 인디케이터 (더 명확한 시각적 피드백) */
+    .sidebar-header::after {
+        content: '⋯⋯⋯';
+        position: absolute;
+        top: 18px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 14px;
+        color: #9ca3af;
+        opacity: 0.6;
+        letter-spacing: 2px;
     }
     
     /* Hide search container in mobile sidebar */
@@ -695,6 +757,31 @@ body {
     font-family: "Noto Sans KR", "Apple SD Gothic Neo", sans-serif;
 }
 
+/* Mobile responsive info-card */
+@media (max-width: 768px) {
+    .info-card {
+        width: 280px;
+        padding: 16px;
+        border-radius: 10px;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.06);
+    }
+}
+
+@media (max-width: 480px) {
+    .info-card {
+        width: 260px;
+        padding: 14px;
+        border-radius: 8px;
+    }
+}
+
+@media (max-width: 360px) {
+    .info-card {
+        width: 240px;
+        padding: 12px;
+    }
+}
+
 .info-card .card-header {
     display: flex;
     justify-content: space-between;
@@ -702,11 +789,29 @@ body {
     margin-bottom: 8px;
 }
 
+@media (max-width: 768px) {
+    .info-card .card-header {
+        margin-bottom: 6px;
+    }
+}
+
 .info-card h5 {
     font-size: 18px;
     font-weight: 700;
     margin: 0;
     color: #333;
+}
+
+@media (max-width: 768px) {
+    .info-card h5 {
+        font-size: 16px;
+    }
+}
+
+@media (max-width: 480px) {
+    .info-card h5 {
+        font-size: 15px;
+    }
 }
 
 .info-card .badge {
@@ -740,6 +845,18 @@ body {
     margin: 12px 0;
 }
 
+@media (max-width: 768px) {
+    .info-card hr {
+        margin: 10px 0;
+    }
+}
+
+@media (max-width: 480px) {
+    .info-card hr {
+        margin: 8px 0;
+    }
+}
+
 .info-card .overall-title {
     display: flex;
     justify-content: space-between;
@@ -748,6 +865,20 @@ body {
     margin: 12px 0 10px;
     font-size: 15px;
     color: #374151;
+}
+
+@media (max-width: 768px) {
+    .info-card .overall-title {
+        margin: 10px 0 8px;
+        font-size: 14px;
+    }
+}
+
+@media (max-width: 480px) {
+    .info-card .overall-title {
+        margin: 8px 0 6px;
+        font-size: 13px;
+    }
 }
 
 .info-card .overall-label {
@@ -777,6 +908,18 @@ body {
     line-height: 1;
 }
 
+@media (max-width: 768px) {
+    .info-card .count-num {
+        font-size: 22px;
+    }
+}
+
+@media (max-width: 480px) {
+    .info-card .count-num {
+        font-size: 20px;
+    }
+}
+
 .info-card .overall-sub {
     font-size: 12px;
     color: #9ca3af;
@@ -790,6 +933,20 @@ body {
     border-radius: 6px;
     overflow: hidden;
     margin: 12px 0;
+}
+
+@media (max-width: 768px) {
+    .info-card .progress-container {
+        height: 10px;
+        margin: 10px 0;
+    }
+}
+
+@media (max-width: 480px) {
+    .info-card .progress-container {
+        height: 8px;
+        margin: 8px 0;
+    }
 }
 
 .info-card .progress-bar {
@@ -807,6 +964,20 @@ body {
     margin-bottom: 0;
 }
 
+@media (max-width: 768px) {
+    .info-card .usage-text {
+        font-size: 13px;
+        margin-top: 6px;
+    }
+}
+
+@media (max-width: 480px) {
+    .info-card .usage-text {
+        font-size: 12px;
+        margin-top: 5px;
+    }
+}
+
 .info-card .rooms-header {
     display: flex;
     justify-content: space-between;
@@ -815,6 +986,20 @@ body {
     margin: 16px 0 12px;
     font-size: 15px;
     color: #374151;
+}
+
+@media (max-width: 768px) {
+    .info-card .rooms-header {
+        margin: 12px 0 10px;
+        font-size: 14px;
+    }
+}
+
+@media (max-width: 480px) {
+    .info-card .rooms-header {
+        margin: 10px 0 8px;
+        font-size: 13px;
+    }
 }
 
 .info-card .realtime {
@@ -849,6 +1034,21 @@ body {
     cursor: pointer;
 }
 
+@media (max-width: 768px) {
+    .info-card .room-row {
+        padding: 10px 12px;
+        margin-bottom: 6px;
+        border-radius: 6px;
+    }
+}
+
+@media (max-width: 480px) {
+    .info-card .room-row {
+        padding: 8px 10px;
+        margin-bottom: 5px;
+    }
+}
+
 .info-card .room-row:hover {
     background-color: #f3f4f6;
     border-color: #e5e7eb;
@@ -861,6 +1061,18 @@ body {
     font-size: 14px;
 }
 
+@media (max-width: 768px) {
+    .info-card .room-row .room-name {
+        font-size: 13px;
+    }
+}
+
+@media (max-width: 480px) {
+    .info-card .room-row .room-name {
+        font-size: 12px;
+    }
+}
+
 .info-card .room-row .room-count {
     text-align: right;
     line-height: 1.2;
@@ -871,6 +1083,18 @@ body {
     font-size: 16px;
     font-weight: 700;
     color: #059669;
+}
+
+@media (max-width: 768px) {
+    .info-card .room-row .room-count strong {
+        font-size: 14px;
+    }
+}
+
+@media (max-width: 480px) {
+    .info-card .room-row .room-count strong {
+        font-size: 13px;
+    }
 }
 
 .info-card .room-row .room-count .sub {
