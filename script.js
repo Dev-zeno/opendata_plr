@@ -826,7 +826,7 @@ function showSecurityAlert(url) {
                 <div style="margin-bottom: 20px;">
                     <i class="fas fa-shield-alt" style="font-size: 48px; color: #f59e0b; margin-bottom: 15px;"></i>
                     <h3 style="margin: 0 0 10px 0; color: #1f2937;">보안 문제 감지</h3>
-                    <p style="margin: 0; color: #6b7280; line-height: 1.5;">HTTPS 보안 정책으로 인해 좌석배치도를 불러올 수 없습니다.<br>새 창에서 열어보시겠습니까?</p>
+                    <p style="margin: 0; color: #6b7280; line-height: 1.5;">HTTPS 보안 정책으로 인해 <br>좌석배치도를 불러올 수 없습니다.<br>새 창에서 열어보시겠습니까?</p>
                 </div>
                 <div style="display: flex; gap: 10px; justify-content: center;">
                     <button id="wait-button" style="
