@@ -4,15 +4,22 @@
 body {
     font-family: 'Noto Sans KR', Arial, sans-serif;
     margin: 0;
+    padding: 0; /* 기본 패딩 제거 */
     height: 100vh;
     overflow: hidden;
     background-color: #f5f5f5;
+    box-sizing: border-box; /* 박스 모델 명시적 설정 */
 }
 
 /* Desktop Layout (Original Design Preserved) */
 @media (min-width: 769px) {
     body {
         display: flex;
+        height: 100vh; /* 전체 화면 높이 */
+        overflow: hidden; /* body 전체 스크롤 방지 */
+        margin: 0 !important; /* 기본 마진 완전 제거 */
+        padding: 0 !important; /* 기본 패딩 완전 제거 */
+        box-sizing: border-box;
     }
     
     .mobile-only {
@@ -21,6 +28,34 @@ body {
     
     .mobile-search-header {
         display: none;
+    }
+    
+    /* 사이드바가 지도 왼쪽에 별도로 위치하도록 */
+    #sidebar {
+        flex: 0 0 350px; /* 고정 너비 350px, 축소/확대 불가 */
+        width: 350px;
+        height: 100vh;
+        display: block !important; /* 강제 표시 */
+        visibility: visible !important;
+        opacity: 1 !important;
+        position: static; /* 일반적인 문서 흐름에 따라 배치 */
+        z-index: 1; /* 지도보다 낮은 z-index */
+    }
+    
+    /* 지도 컨테이너가 사이드바 오른쪽 나머지 공간을 차지하도록 */
+    #map-container {
+        flex: 1; /* 나머지 공간 모두 차지 */
+        width: calc(100vw - 350px); /* 전체 너비에서 사이드바 너비 제외 */
+        height: 100vh; /* 전체 높이 */
+        position: relative;
+        overflow: hidden;
+    }
+    
+    /* 지도가 컨테이너 전체를 차지하도록 */
+    #map {
+        width: 100%;
+        height: 100%;
+        position: relative;
     }
 }
 
@@ -165,18 +200,42 @@ body {
 @media (min-width: 769px) {
     #sidebar {
         width: 350px;
-        height: 100%;
+        min-width: 350px; /* 최소 너비 보장 */
+        height: 100vh; /* 전체 화면 높이 */
         background-color: #f8f9fa;
         border-right: 1px solid #dee2e6;
         overflow-y: auto;
         box-shadow: 2px 0 5px rgba(0,0,0,0.1);
-        transition: width 0.3s ease;
         padding: 0;
+        display: block !important; /* 항상 표시 */
+        position: static !important; /* flex 레이아웃에 따라 배치 */
+        visibility: visible !important;
+        opacity: 1 !important;
+        flex-shrink: 0; /* flex 컨테이너에서 축소 방지 */
+        z-index: 1;
+        /* 겹침 방지를 위한 설정 */
+        top: auto !important;
+        left: auto !important;
+        right: auto !important;
+        bottom: auto !important;
+        margin: 0 !important;
+        transform: none !important;
+        float: none !important;
     }
     
+    /* 데스크톱에서는 collapsed 클래스가 있어도 표시 */
     #sidebar.collapsed {
-        width: 0;
-        overflow: hidden;
+        width: 350px !important;
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        position: static !important;
+    }
+    
+    #sidebar.active {
+        width: 350px;
+        display: block !important;
+        position: static !important;
     }
 }
 

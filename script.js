@@ -79,10 +79,78 @@ function initDesktopSidebar() {
     const sidebarToggle = document.getElementById('sidebar-toggle');
     const sidebar = document.getElementById('sidebar');
     
+    // PC 버전에서는 사이드바를 항상 표시
+    if (window.innerWidth > 768) {
+        if (sidebar) {
+            sidebar.classList.remove('collapsed');
+            sidebar.classList.add('active');
+            console.log('PC 사이드바 초기화 완료 - 표시됨');
+        }
+        
+        if (sidebarToggle) {
+            sidebarToggle.style.display = 'none'; // PC에서는 토글 버튼 숨김
+        }
+    }
+    
+    // 토글 버튼 클릭 이벤트 (PC용)
     if (sidebarToggle && sidebar) {
         sidebarToggle.addEventListener('click', function() {
             sidebar.classList.toggle('collapsed');
+            
+            // 토글 버튼 텍스트 변경
+            if (sidebar.classList.contains('collapsed')) {
+                sidebarToggle.textContent = '▶';
+            } else {
+                sidebarToggle.textContent = '◀';
+            }
         });
+    }
+}
+
+// 화면 크기에 따른 사이드바 초기화
+function initializeSidebarForScreenSize() {
+    const sidebar = document.getElementById('sidebar');
+    
+    if (window.innerWidth > 768) {
+        // PC 버전 - 사이드바 강제 표시
+        if (sidebar) {
+            // 모든 상태 클래스 제거 후 재설정
+            sidebar.classList.remove('collapsed', 'expanded');
+            sidebar.classList.add('active');
+            
+            // 인라인 스타일도 강제 설정
+            sidebar.style.display = 'block';
+            sidebar.style.visibility = 'visible';
+            sidebar.style.opacity = '1';
+            sidebar.style.position = 'static'; // flex 레이아웃에 따라 배치
+            sidebar.style.width = '350px';
+            sidebar.style.height = '100vh';
+            sidebar.style.top = 'auto'; // 초기화
+            sidebar.style.left = 'auto'; // 초기화
+            sidebar.style.bottom = 'auto';
+            sidebar.style.right = 'auto';
+            sidebar.style.transform = 'none';
+            sidebar.style.margin = '0';
+            sidebar.style.padding = '0';
+            sidebar.style.float = 'none'; // float 제거
+            
+            console.log('PC 모드 - 사이드바 강제 표시 완료');
+        }
+    } else {
+        // 모바일 버전 - 하단 시트 스타일
+        if (sidebar) {
+            sidebar.classList.remove('active');
+            sidebar.classList.add('collapsed');
+            sidebar.style.position = 'fixed';
+            sidebar.style.width = '100%';
+            sidebar.style.height = '75vh';
+            sidebar.style.top = (window.innerHeight - 80) + 'px';
+            sidebar.style.bottom = 'auto';
+            sidebar.style.display = 'block';
+            sidebar.style.visibility = 'visible';
+            sidebar.style.opacity = '1';
+            console.log('모바일 모드 - 사이드바 축소됨');
+        }
     }
 }
 
@@ -625,35 +693,35 @@ document.getElementById('refresh-button').addEventListener('click', async () => 
     }
 });
 
-document.getElementById('sidebar-toggle').addEventListener('click', () => {
+// 화면 크기에 따른 사이드바 초기화
+function initializeSidebarForScreenSize() {
     const sidebar = document.getElementById('sidebar');
     const toggleButton = document.getElementById('sidebar-toggle');
     
-    sidebar.classList.toggle('active');
-    if (sidebar.classList.contains('active')) {
-        toggleButton.textContent = '◀';
-    } else {
-        toggleButton.textContent = '▶';
-    }
-});
-
-// Function to adjust sidebar visibility based on screen size
-function adjustSidebarForScreenSize() {
-    const sidebar = document.getElementById('sidebar');
-    const toggleButton = document.getElementById('sidebar-toggle');
-    if (window.innerWidth <= 768) {
-        sidebar.classList.remove('active');
-        toggleButton.style.display = 'block';
-        toggleButton.textContent = '▶'; // Show right arrow when sidebar is hidden
-    } else {
+    if (!sidebar) return;
+    
+    if (window.innerWidth > 768) {
+        // PC 버전: 사이드바 항상 표시
+        sidebar.classList.remove('collapsed');
         sidebar.classList.add('active');
-        toggleButton.style.display = 'none';
+        
+        if (toggleButton) {
+            toggleButton.style.display = 'none';
+        }
+        
+        console.log('PC 모드: 사이드바 항상 표시');
+    } else {
+        // 모바일 버전: 기존 로직 유지
+        sidebar.classList.remove('active');
+        
+        if (toggleButton) {
+            toggleButton.style.display = 'block';
+            toggleButton.textContent = '▶';
+        }
+        
+        console.log('모바일 모드: 사이드바 토글 활성화');
     }
 }
-
-// Initial adjustment and on window resize
-adjustSidebarForScreenSize();
-window.addEventListener('resize', adjustSidebarForScreenSize);
 
 
 
@@ -921,6 +989,13 @@ async function initialize() {
     console.log('Initializing application...');
     
     try {
+        // 즉시 데스크톱 사이드바 초기화 (다른 모든 것보다 먼저)
+        if (window.innerWidth > 768) {
+            initDesktopSidebar();
+            initializeSidebarForScreenSize();
+            console.log('데스크톱 사이드바 우선 초기화 완료');
+        }
+        
         await fetchSeatMapData();
         console.log('Seat map data fetched');
         
@@ -930,10 +1005,21 @@ async function initialize() {
         createBubbleButtons();
         console.log('Bubble buttons created');
         
-        // DOM이 준비된 후 헤더 클릭 초기화
+        // 다시 한 번 데스크톱 사이드바 확인
+        if (window.innerWidth > 768) {
+            setTimeout(() => {
+                initDesktopSidebar();
+                initializeSidebarForScreenSize();
+                console.log('데스크톱 사이드바 재초기화 완료');
+            }, 100);
+        }
+        
+        // DOM이 준비된 후 헤더 클릭 초기화 (모바일용)
         setTimeout(() => {
-            addHeaderClickToggle();
-            console.log('Header click toggle added');
+            if (window.innerWidth <= 768) {
+                addHeaderClickToggle();
+                console.log('Header click toggle added for mobile');
+            }
         }, 100);
         
     } catch (error) {
@@ -1028,6 +1114,10 @@ initialize();
 window.addEventListener('DOMContentLoaded', () => {
     console.log('DOMContentLoaded event fired');
     
+    // PC 버전 사이드바 초기화
+    initDesktopSidebar();
+    initializeSidebarForScreenSize();
+    
     // 모바일 인터렉션 초기화
     initMobileInteractions();
     
@@ -1045,5 +1135,10 @@ window.addEventListener('DOMContentLoaded', () => {
     cityLabel.addEventListener('click', () => {
         isCollapsed = !isCollapsed;
         cityButtonsContainer.style.display = isCollapsed ? 'none' : 'grid';
+    });
+    
+    // 화면 크기 변경 시 사이드바 재초기화
+    window.addEventListener('resize', () => {
+        initializeSidebarForScreenSize();
     });
 });
