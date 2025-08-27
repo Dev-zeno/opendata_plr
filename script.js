@@ -182,11 +182,32 @@ function setUpdateTime() {
 
 async function fetchSeatMapData() {
     try {
-        const response = await fetch(`https://raw.githubusercontent.com/Dev-zeno/opendata_plr/refs/heads/main/library_data.json?t=${Date.now()}`, { cache: 'no-store' });
-        seatMapData = await response.json();
-        console.log('Seat map data fetched:', seatMapData);
+        const response = await fetch(`/api/seat-map-proxy?t=${Date.now()}`, { cache: 'no-store' });
+        const data = await response.json();
+        
+        // 좌석배치도 데이터를 매핑 형태로 변환
+        seatMapData = {};
+        if (data && Array.isArray(data)) {
+            data.forEach(item => {
+                if (item.stdgCd && item.pblibId && item.rdrmId && item.rdrmUrl) {
+                    // 키 형태: "stdgCd_pblibId_rdrmId"
+                    const key = `${item.stdgCd}_${item.pblibId}_${item.rdrmId}`;
+                    seatMapData[key] = {
+                        url: item.rdrmUrl,
+                        rdrmNm: item.rdrmNm || '열람실',
+                        pblibNm: item.pblibNm || '도서관'
+                    };
+                }
+            });
+        }
+        
+        console.log('Seat map data fetched and mapped:', Object.keys(seatMapData).length, 'rooms');
+        console.log('Sample seat map data:', Object.keys(seatMapData).slice(0, 3).map(key => ({ key, data: seatMapData[key] })));
+        
     } catch (error) {
         console.error('Error fetching seat map data:', error);
+        // 에러 발생 시 빈 객체로 초기화
+        seatMapData = {};
     }
 }
 
@@ -542,13 +563,21 @@ function displayLibraries(libraries) {
         let roomRows = '';
         if (lib.readingRooms && lib.readingRooms.length > 0) {
             lib.readingRooms.forEach(room => {
-                // Use updated seat map URL
-                const seatMapUrl = 'https://www.snlib.go.kr/sh/contents/roomStatus.do';
+                // 동적으로 좌석배치도 URL 찾기
+                const seatMapKey = `${lib.stdgCd}_${lib.pblibId}_${room.rdrmId}`;
+                const seatMapInfo = seatMapData[seatMapKey];
+                const seatMapUrl = seatMapInfo ? seatMapInfo.url : null;
+                
+                // 모든 열람실을 클릭 가능하게 설정 (URL이 없으면 안내 문구 표시)
+                const clickHandler = `onclick="openModal('${seatMapUrl || 'null'}')"`;
+                const hasUrl = seatMapUrl && seatMapUrl !== 'null' && seatMapUrl.trim() !== '';
+                const titleText = hasUrl ? '클릭하면 좌석배치도를 볼 수 있습니다' : '좌석배치도가 제공되지 않습니다';
+                
                 roomRows += `
-                    <li class="room-row cursor-pointer" onclick="openModal('${seatMapUrl}')">
+                    <li class="room-row cursor-pointer" ${clickHandler} title="${titleText}">
                         <span class="room-name">${room.rdrmNm}</span>
                         <span class="room-count"><strong>${room.rmndSeatCnt}/${room.tseatCnt}</strong><br><span class="sub">잔여/전체</span></span>
-                        <i class="fa-solid fa-table-cells-large grid-icon"></i>
+                        <i class="fa-solid fa-table-cells-large grid-icon" style="opacity: ${hasUrl ? '1' : '0.5'}"></i>
                     </li>`;
             });
         } else {
@@ -662,8 +691,13 @@ document.getElementById('refresh-button').addEventListener('click', async () => 
     refreshButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 새로고침 중...';
     
     try {
-        // 데이터 다시 로드
-        await fetchLibraries();
+        // 데이터 다시 로드 (좌석배치도 데이터 포함)
+        await Promise.all([
+            fetchSeatMapData(),  // 좌석배치도 데이터 새로고침
+            fetchLibraries()     // 도서관 및 열람실 데이터 새로고침
+        ]);
+        
+        console.log('모든 데이터 새로고침 완료');
         
         // 업데이트 시간 갱신
         const now = new Date();
@@ -805,15 +839,32 @@ let currentModalUrl = null;
 
 function openModal(url) {
     console.log('Opening modal with URL: ' + url);
-    currentModalUrl = url;
+    
     const modalContainer = document.getElementById('modal-container');
-    const iframe = document.getElementById('seat-map-frame');
+    
+    // URL이 null이거나 유효하지 않은 경우 안내 문구 표시
+    if (!url || url === 'null' || url.trim() === '') {
+        modalContainer.innerHTML = `
+            <div id="modal-content">
+                <span id="modal-close" class="modal-close-btn">&times;</span>
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; padding: 40px; text-align: center;">
+                    <i class="fas fa-info-circle" style="font-size: 48px; color: #6b7280; margin-bottom: 20px;"></i>
+                    <h3 style="margin: 0 0 10px 0; color: #374151; font-size: 18px;">좌석배치도 제공 안내</h3>
+                    <p style="margin: 0; color: #6b7280; font-size: 14px; line-height: 1.5;">도서관에서 좌석배치도를 제공하지 않습니다</p>
+                </div>
+            </div>
+        `;
+        modalContainer.classList.remove('hidden');
+        // null 값인 경우 timeout이나 security alert 설정하지 않음
+        return;
+    }
+    
+    currentModalUrl = url;
     
     // Add loading state
-    iframe.style.display = 'none';
     modalContainer.innerHTML = `
         <div id="modal-content">
-            <span id="modal-close">&times;</span>
+            <span id="modal-close" class="modal-close-btn">&times;</span>
             <div style="display: flex; align-items: center; justify-content: center; height: 100%; font-size: 18px; color: #666;">
                 <i class="fas fa-spinner fa-spin mr-2"></i>
                 좌석배치도를 불러오는 중...
@@ -828,7 +879,7 @@ function openModal(url) {
     const newIframe = document.getElementById('seat-map-frame');
     const loading = modalContainer.querySelector('div[style*="display: flex"]');
     
-    // Set up 3-second timeout for HTTPS security issues
+    // Set up 3-second timeout for HTTPS security issues (URL이 있는 경우만)
     modalTimeout = setTimeout(() => {
         showSecurityAlert(url);
     }, 3000);
@@ -853,9 +904,6 @@ function openModal(url) {
     };
     
     newIframe.src = url;
-    
-    // Re-attach close event listener
-    document.getElementById('modal-close').addEventListener('click', closeModal);
 }
 
 function showSecurityAlert(url) {
@@ -971,17 +1019,15 @@ function closeModal() {
     currentModalUrl = null;
 }
 
-document.getElementById('modal-close').addEventListener('click', closeModal);
-
-// Close modal when clicking outside the modal content
-window.addEventListener('click', (event) => {
-    const modalContainer = document.getElementById('modal-container');
-    if (event.target === modalContainer) {
+// 이벤트 위임을 사용하여 동적으로 생성된 닫기 버튼도 처리
+document.addEventListener('click', function(event) {
+    // 닫기 버튼 클릭 처리
+    if (event.target.matches('#modal-close, .modal-close-btn')) {
         closeModal();
     }
-});
-document.getElementById('modal-container').addEventListener('click', (event) => {
-    if (event.target === document.getElementById('modal-container')) {
+    
+    // 모달 바깥 배경 클릭 처리
+    if (event.target.matches('#modal-container')) {
         closeModal();
     }
 });
