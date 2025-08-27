@@ -182,7 +182,18 @@ function setUpdateTime() {
 
 async function fetchSeatMapData() {
     try {
-        const response = await fetch(`/api/seat-map-proxy?t=${Date.now()}`, { cache: 'no-store' });
+        // Vercel 배포 환경에서도 작동하도록 직접 GitHub에서 가져오기
+        const response = await fetch(`https://raw.githubusercontent.com/Dev-zeno/opendata_plr/refs/heads/main/library_data.json?t=${Date.now()}`, { 
+            cache: 'no-store',
+            headers: {
+                'User-Agent': 'OpenData-Library-App/1.0'
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
         const data = await response.json();
         
         // 좌석배치도 데이터를 매핑 형태로 변환
@@ -201,13 +212,38 @@ async function fetchSeatMapData() {
             });
         }
         
-        console.log('Seat map data fetched and mapped:', Object.keys(seatMapData).length, 'rooms');
+        console.log('Seat map data fetched and mapped (GitHub direct):', Object.keys(seatMapData).length, 'rooms');
         console.log('Sample seat map data:', Object.keys(seatMapData).slice(0, 3).map(key => ({ key, data: seatMapData[key] })));
         
     } catch (error) {
-        console.error('Error fetching seat map data:', error);
-        // 에러 발생 시 빈 객체로 초기화
-        seatMapData = {};
+        console.error('Error fetching seat map data from GitHub:', error);
+        
+        // 대체 방럈으로 API 사용 시도
+        try {
+            console.log('Trying fallback API endpoint...');
+            const fallbackResponse = await fetch(`/api/seat-map-proxy?t=${Date.now()}`, { cache: 'no-store' });
+            const fallbackData = await fallbackResponse.json();
+            
+            seatMapData = {};
+            if (fallbackData && Array.isArray(fallbackData)) {
+                fallbackData.forEach(item => {
+                    if (item.stdgCd && item.pblibId && item.rdrmId && item.rdrmUrl) {
+                        const key = `${item.stdgCd}_${item.pblibId}_${item.rdrmId}`;
+                        seatMapData[key] = {
+                            url: item.rdrmUrl,
+                            rdrmNm: item.rdrmNm || '열람실',
+                            pblibNm: item.pblibNm || '도서관'
+                        };
+                    }
+                });
+            }
+            
+            console.log('Seat map data fetched via fallback API:', Object.keys(seatMapData).length, 'rooms');
+        } catch (fallbackError) {
+            console.error('Fallback API also failed:', fallbackError);
+            // 에러 발생 시 빈 객체로 초기화
+            seatMapData = {};
+        }
     }
 }
 
@@ -567,6 +603,14 @@ function displayLibraries(libraries) {
                 const seatMapKey = `${lib.stdgCd}_${lib.pblibId}_${room.rdrmId}`;
                 const seatMapInfo = seatMapData[seatMapKey];
                 const seatMapUrl = seatMapInfo ? seatMapInfo.url : null;
+                
+                // 디버깅을 위한 로그 추가
+                if (room.rdrmNm && room.rdrmNm.includes('열람실')) {
+                    console.log(`[DEBUG] Seat map lookup for ${lib.pblibNm} - ${room.rdrmNm}:`);
+                    console.log(`  Key: ${seatMapKey}`);
+                    console.log(`  Found URL: ${seatMapUrl}`);
+                    console.log(`  SeatMapData has key: ${seatMapData.hasOwnProperty(seatMapKey)}`);
+                }
                 
                 // 모든 열람실을 클릭 가능하게 설정 (URL이 없으면 안내 문구 표시)
                 const clickHandler = `onclick="openModal('${seatMapUrl || 'null'}')"`;
