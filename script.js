@@ -196,10 +196,16 @@ async function fetchSeatMapData() {
         
         const data = await response.json();
         
+        console.log('[FETCH SEAT MAP] Raw data received:', {
+            isArray: Array.isArray(data),
+            length: data ? data.length : 0,
+            sampleItem: data && data.length > 0 ? data[0] : null
+        });
+        
         // 좌석배치도 데이터를 매핑 형태로 변환
         seatMapData = {};
         if (data && Array.isArray(data)) {
-            data.forEach(item => {
+            data.forEach((item, index) => {
                 if (item.stdgCd && item.pblibId && item.rdrmId && item.rdrmUrl) {
                     // 키 형태: "stdgCd_pblibId_rdrmId"
                     const key = `${item.stdgCd}_${item.pblibId}_${item.rdrmId}`;
@@ -208,6 +214,25 @@ async function fetchSeatMapData() {
                         rdrmNm: item.rdrmNm || '열람실',
                         pblibNm: item.pblibNm || '도서관'
                     };
+                    
+                    // 처음 5개 아이템에 대해 상세 로그
+                    if (index < 5) {
+                        console.log(`[FETCH SEAT MAP] Item ${index + 1}:`, {
+                            original: { stdgCd: item.stdgCd, pblibId: item.pblibId, rdrmId: item.rdrmId, rdrmUrl: item.rdrmUrl },
+                            mappedKey: key,
+                            mappedValue: seatMapData[key]
+                        });
+                    }
+                } else {
+                    // 누락된 필드가 있는 아이템 로그
+                    if (index < 5) {
+                        console.log(`[FETCH SEAT MAP] Skipped item ${index + 1} - missing fields:`, {
+                            stdgCd: item.stdgCd,
+                            pblibId: item.pblibId,
+                            rdrmId: item.rdrmId,
+                            rdrmUrl: item.rdrmUrl
+                        });
+                    }
                 }
             });
         }
@@ -224,9 +249,15 @@ async function fetchSeatMapData() {
             const fallbackResponse = await fetch(`/api/seat-map-proxy?t=${Date.now()}`, { cache: 'no-store' });
             const fallbackData = await fallbackResponse.json();
             
+            console.log('[FALLBACK API] Raw data received:', {
+                isArray: Array.isArray(fallbackData),
+                length: fallbackData ? fallbackData.length : 0,
+                sampleItem: fallbackData && fallbackData.length > 0 ? fallbackData[0] : null
+            });
+            
             seatMapData = {};
             if (fallbackData && Array.isArray(fallbackData)) {
-                fallbackData.forEach(item => {
+                fallbackData.forEach((item, index) => {
                     if (item.stdgCd && item.pblibId && item.rdrmId && item.rdrmUrl) {
                         const key = `${item.stdgCd}_${item.pblibId}_${item.rdrmId}`;
                         seatMapData[key] = {
@@ -234,6 +265,13 @@ async function fetchSeatMapData() {
                             rdrmNm: item.rdrmNm || '열람실',
                             pblibNm: item.pblibNm || '도서관'
                         };
+                        
+                        if (index < 3) {
+                            console.log(`[FALLBACK API] Item ${index + 1}:`, {
+                                mappedKey: key,
+                                mappedValue: seatMapData[key]
+                            });
+                        }
                     }
                 });
             }
@@ -604,12 +642,21 @@ function displayLibraries(libraries) {
                 const seatMapInfo = seatMapData[seatMapKey];
                 const seatMapUrl = seatMapInfo ? seatMapInfo.url : null;
                 
-                // 디버깅을 위한 로그 추가
-                if (room.rdrmNm && room.rdrmNm.includes('열람실')) {
-                    console.log(`[DEBUG] Seat map lookup for ${lib.pblibNm} - ${room.rdrmNm}:`);
-                    console.log(`  Key: ${seatMapKey}`);
-                    console.log(`  Found URL: ${seatMapUrl}`);
-                    console.log(`  SeatMapData has key: ${seatMapData.hasOwnProperty(seatMapKey)}`);
+                // 강화된 디버깅을 위한 로그 추가
+                console.log(`[SEAT MAP DEBUG] Room: ${lib.pblibNm} - ${room.rdrmNm}`);
+                console.log(`  Library info: stdgCd=${lib.stdgCd}, pblibId=${lib.pblibId}`);
+                console.log(`  Room info: rdrmId=${room.rdrmId}`);
+                console.log(`  Generated key: ${seatMapKey}`);
+                console.log(`  SeatMapData keys available: ${Object.keys(seatMapData).length} total`);
+                console.log(`  Key exists in seatMapData: ${seatMapData.hasOwnProperty(seatMapKey)}`);
+                console.log(`  Found URL: ${seatMapUrl}`);
+                
+                if (!seatMapUrl && room.rdrmNm && room.rdrmNm.includes('열람실')) {
+                    // 키가 없는 경우 비슷한 키들 찾아보기
+                    const similarKeys = Object.keys(seatMapData).filter(key => 
+                        key.includes(lib.stdgCd) || key.includes(lib.pblibId)
+                    );
+                    console.log(`  Similar keys found: ${similarKeys.length > 0 ? similarKeys : 'None'}`);
                 }
                 
                 // 모든 열람실을 클릭 가능하게 설정 (URL이 없으면 안내 문구 표시)
@@ -651,26 +698,7 @@ function displayLibraries(libraries) {
     }
 }
 
-function openModal(imageUrl, roomName) {
-    const modal = document.getElementById('seat-map-modal');
-    const modalImage = document.getElementById('modal-seat-map-image');
-    const modalTitle = document.getElementById('modal-title');
-
-    modalTitle.textContent = roomName; // Set the title of the modal
-    modalImage.src = imageUrl;
-    modal.style.display = 'block';
-}
-
-document.getElementById('modal-close').addEventListener('click', () => {
-    document.getElementById('seat-map-modal').style.display = 'none';
-});
-
-window.addEventListener('click', (event) => {
-    const modal = document.getElementById('seat-map-modal');
-    if (event.target == modal) {
-        modal.style.display = 'none';
-    }
-});
+// Obsolete openModal function removed - using the modern modal implementation below
 
 function createBubbleButtons() {
     const bubbleContainer = document.getElementById('bubble-container');
@@ -1055,9 +1083,14 @@ function closeModal() {
     
     // Close the modal
     const modalContainer = document.getElementById('modal-container');
-    const iframe = document.getElementById('seat-map-frame');
-    iframe.src = '';
-    modalContainer.classList.add('hidden');
+    if (modalContainer) {
+        // Safely clear iframe if it exists
+        const iframe = document.getElementById('seat-map-frame');
+        if (iframe) {
+            iframe.src = '';
+        }
+        modalContainer.classList.add('hidden');
+    }
     
     // Reset current modal URL
     currentModalUrl = null;
@@ -1065,14 +1098,39 @@ function closeModal() {
 
 // 이벤트 위임을 사용하여 동적으로 생성된 닫기 버튼도 처리
 document.addEventListener('click', function(event) {
-    // 닫기 버튼 클릭 처리
-    if (event.target.matches('#modal-close, .modal-close-btn')) {
+    console.log('Document click detected:', event.target);
+    
+    // 닫기 버튼 클릭 처리 - 다양한 선택자로 강화
+    if (event.target.id === 'modal-close' || 
+        event.target.classList.contains('modal-close-btn') ||
+        event.target.matches('#modal-close') ||
+        event.target.matches('.modal-close-btn')) {
+        console.log('Modal close button clicked!');
+        event.preventDefault();
+        event.stopPropagation();
         closeModal();
+        return;
     }
     
     // 모달 바깥 배경 클릭 처리
-    if (event.target.matches('#modal-container')) {
+    if (event.target.id === 'modal-container' || event.target.matches('#modal-container')) {
+        console.log('Modal background clicked!');
+        event.preventDefault();
+        event.stopPropagation();
         closeModal();
+        return;
+    }
+}, true); // 캐처링 단계에서 이벤트 처리
+
+// ESC 키로 모달 닫기 (대체 방법)
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape' || event.keyCode === 27) {
+        const modalContainer = document.getElementById('modal-container');
+        if (modalContainer && !modalContainer.classList.contains('hidden')) {
+            console.log('ESC key pressed - closing modal');
+            event.preventDefault();
+            closeModal();
+        }
     }
 });
 async function initialize() {
@@ -1232,3 +1290,25 @@ window.addEventListener('DOMContentLoaded', () => {
         initializeSidebarForScreenSize();
     });
 });
+
+// 테스트 함수 - 브라우저 콘솔에서 모달 테스트용
+window.testModal = function(url) {
+    console.log('Manual modal test triggered with URL:', url);
+    openModal(url || 'https://www.google.com');
+};
+
+window.testCloseModal = function() {
+    console.log('Manual close modal test triggered');
+    closeModal();
+};
+
+window.debugModalState = function() {
+    const modalContainer = document.getElementById('modal-container');
+    const modalClose = document.getElementById('modal-close');
+    console.log('Modal debug state:', {
+        modalContainer: modalContainer ? 'found' : 'not found',
+        modalContainerHidden: modalContainer ? modalContainer.classList.contains('hidden') : 'N/A',
+        modalClose: modalClose ? 'found' : 'not found',
+        modalCloseClasses: modalClose ? modalClose.className : 'N/A'
+    });
+};
