@@ -1,7 +1,7 @@
-const axios = require('axios');
+// Vercel 서버리스 함수 형식으로 수정 - Node.js built-in https 사용
+const https = require('https');
 
-// Vercel 서버리스 함수 형식으로 수정
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
     console.log('Seat map proxy called');
     
     // CORS 헤더 설정 (Vercel 방식)
@@ -22,20 +22,37 @@ export default async function handler(req, res) {
     }
     
     try {
-        // GitHub에서 좌석배치도 데이터 가져오기
+        // GitHub에서 좌석배치도 데이터 가져오기 - https 모듈 사용
         const apiUrl = 'https://raw.githubusercontent.com/Dev-zeno/opendata_plr/refs/heads/main/library_data.json';
         
-        const response = await axios.get(apiUrl, {
-            timeout: 10000,
-            headers: {
-                'User-Agent': 'OpenData-Library-App/1.0'
-            }
+        const data = await new Promise((resolve, reject) => {
+            https.get(apiUrl, {
+                headers: {
+                    'User-Agent': 'OpenData-Library-App/1.0'
+                }
+            }, (response) => {
+                let data = '';
+                
+                response.on('data', (chunk) => {
+                    data += chunk;
+                });
+                
+                response.on('end', () => {
+                    try {
+                        resolve(JSON.parse(data));
+                    } catch (error) {
+                        reject(new Error('Invalid JSON response'));
+                    }
+                });
+            }).on('error', (error) => {
+                reject(error);
+            });
         });
-
+        
         console.log('Seat map data fetched successfully');
         
         // 데이터 반환
-        res.status(200).json(response.data);
+        res.status(200).json(data);
         
     } catch (error) {
         console.error('Error fetching seat map data:', error.message);
@@ -45,4 +62,4 @@ export default async function handler(req, res) {
             message: error.message
         });
     }
-}
+};

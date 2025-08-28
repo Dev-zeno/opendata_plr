@@ -1,7 +1,7 @@
-// api/proxy-reading-room.js
-const axios = require('axios');
+// api/proxy-reading-room.js - Using Node.js built-in https module
+const https = require('https');
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   // CORS 헤더 설정
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS');
@@ -21,10 +21,30 @@ export default async function handler(req, res) {
   
   try {
     const url = `https://apis.data.go.kr/B551982/plr/rlt_rdrm_info?serviceKey=80j%2FK4JyieJVqIy2fT0qM5ziOrx42wpgHUNb%2BKZQOQ8fGYSohlz2aUfwIBnGQYO38KXJ2szvUBa%2FCOX2W95PuQ%3D%3D&pageNo=1&numOfRows=1000&type=json`;
-    const response = await axios.get(url);
-    res.status(200).json(response.data);
+    
+    const data = await new Promise((resolve, reject) => {
+      https.get(url, (response) => {
+        let data = '';
+        
+        response.on('data', (chunk) => {
+          data += chunk;
+        });
+        
+        response.on('end', () => {
+          try {
+            resolve(JSON.parse(data));
+          } catch (error) {
+            reject(new Error('Invalid JSON response'));
+          }
+        });
+      }).on('error', (error) => {
+        reject(error);
+      });
+    });
+    
+    res.status(200).json(data);
   } catch (error) {
     console.error('Proxy error for reading room:', error);
     res.status(500).json({ error: 'Failed to fetch reading room data' });
   }
-}
+};
