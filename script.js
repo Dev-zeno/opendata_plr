@@ -286,7 +286,6 @@ async function fetchSeatMapData() {
 }
 
 function fetchLibraries() {
-
     const libraryInfoUrl = `/api/proxy`;
     const readingRoomUrl = `/api/proxy-reading-room`;
 
@@ -316,6 +315,10 @@ function fetchLibraries() {
                         readingRooms: readingRoomMap.get(key) || []
                     };
                 });
+                
+                console.log('Libraries processed:', allLibraries.length);
+                console.log('SeatMapData available:', Object.keys(seatMapData).length, 'rooms');
+                
                 updateStatistics(allLibraries);
                 displayLibraries(allLibraries);
                 generateCityButtons(allLibraries);
@@ -326,14 +329,16 @@ function fetchLibraries() {
                 if (regionLabelEl) {
                     regionLabelEl.textContent = '전국 도서관';
                 }
-                console.log('Library data fetched:', allLibraries);
+                console.log('Library data processing completed');
+                return allLibraries; // Promise 리턴값 추가
             } else {
                 console.error('Error: Unexpected data structure in API response.');
-
+                throw new Error('Invalid API response structure');
             }
         })
         .catch(error => {
             console.error('Error fetching library data:', error);
+            throw error; // 에러를 다시 던져서 호출자가 처리하도록 함
         });
 }
 
@@ -636,11 +641,22 @@ function displayLibraries(libraries) {
         // 열람실 행 구성
         let roomRows = '';
         if (lib.readingRooms && lib.readingRooms.length > 0) {
+            // seatMapData 로딩 상태 확인
+            const seatMapDataLoaded = Object.keys(seatMapData).length > 0;
+            if (!seatMapDataLoaded) {
+                console.warn('[SEAT MAP WARNING] SeatMapData not fully loaded yet. Available keys:', Object.keys(seatMapData).length);
+            }
+            
             lib.readingRooms.forEach(room => {
                 // 동적으로 좌석배치도 URL 찾기
                 const seatMapKey = `${lib.stdgCd}_${lib.pblibId}_${room.rdrmId}`;
                 const seatMapInfo = seatMapData[seatMapKey];
-                const seatMapUrl = seatMapInfo ? seatMapInfo.url : null;
+                let seatMapUrl = seatMapInfo ? seatMapInfo.url : null;
+                
+                // 추가 안전 검사: URL이 비어있거나 널인 경우 처리
+                if (seatMapUrl && (seatMapUrl.trim() === '' || seatMapUrl === 'null' || seatMapUrl === 'undefined')) {
+                    seatMapUrl = null;
+                }
                 
                 // 강화된 디버깅을 위한 로그 추가
                 console.log(`[SEAT MAP DEBUG] Room: ${lib.pblibNm} - ${room.rdrmNm}`);
@@ -763,7 +779,8 @@ document.getElementById('refresh-button').addEventListener('click', async () => 
     refreshButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 새로고침 중...';
     
     try {
-        // 데이터 다시 로드 (좌석배치도 데이터 포함)
+        // 데이터 다시 로드 (좌석배치도 데이터 포함) - Promise.all로 동시 로드
+        console.log('Refreshing all data...');
         await Promise.all([
             fetchSeatMapData(),  // 좌석배치도 데이터 새로고침
             fetchLibraries()     // 도서관 및 열람실 데이터 새로고침
@@ -1144,12 +1161,15 @@ async function initialize() {
             console.log('데스크톱 사이드바 우선 초기화 완료');
         }
         
-        await fetchSeatMapData();
-        console.log('Seat map data fetched');
+        // 좌석배치도 데이터와 도서관 데이터를 동시에 로드하되 모두 완료될 때까지 대기
+        console.log('Starting parallel data fetch...');
+        await Promise.all([
+            fetchSeatMapData(),
+            fetchLibraries()
+        ]);
+        console.log('All data fetched successfully - seatMapData and libraries loaded');
         
-        fetchLibraries();
-        console.log('Libraries fetch initiated');
-        
+        // 데이터 로딩 완료 후 UI 업데이트
         createBubbleButtons();
         console.log('Bubble buttons created');
         
