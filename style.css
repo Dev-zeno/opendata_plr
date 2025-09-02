@@ -198,7 +198,6 @@ body {
 
 /* 모바일 드래그 핸들 스타일 */
 .mobile-drag-handle {
-    display: none; /* PC에서는 숨김 */
     position: absolute;
     top: 0;
     left: 0;
@@ -208,11 +207,19 @@ body {
     border-radius: 12px 12px 0 0;
     cursor: grab;
     z-index: 1000;
-    display: flex;
     justify-content: center;
     align-items: center;
     padding: 8px 0;
     box-sizing: border-box;
+    /* 모바일 터치 최적화 */
+    touch-action: pan-y;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    /* 기본값: 숨김 (PC용) */
+    display: none;
 }
 
 .mobile-drag-handle:active {
@@ -303,6 +310,10 @@ body {
         transition: none; /* 기본적으로 transition 제거 */
         overflow-y: auto;
         padding: 0;
+        /* 모바일 터치 최적화 */
+        touch-action: pan-y;
+        -webkit-overflow-scrolling: touch;
+        will-change: transform;
     }
     
     #sidebar.expanded {

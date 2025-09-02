@@ -125,7 +125,14 @@ function initMobileDragFeature() {
     
     // 터치 시작
     function handleStart(e) {
+        console.log('드래그 시작 이벤트:', e.type, e);
+        
         const touch = e.touches ? e.touches[0] : e;
+        
+        if (!touch) {
+            console.error('터치 정보를 찾을 수 없습니다');
+            return;
+        }
         
         isDragging = true;
         startY = touch.clientY;
@@ -137,7 +144,15 @@ function initMobileDragFeature() {
         sidebar.style.transition = 'none';
         dragHandle.style.backgroundColor = 'rgba(59, 130, 246, 0.1)';
         
+        console.log('드래그 시작:', {
+            startY: startY,
+            startTop: startTop,
+            currentTop: currentTop
+        });
+        
+        // 이벤트 전파 방지
         e.preventDefault();
+        e.stopPropagation();
     }
     
     // 터치 이동
@@ -145,6 +160,12 @@ function initMobileDragFeature() {
         if (!isDragging) return;
         
         const touch = e.touches ? e.touches[0] : e;
+        
+        if (!touch) {
+            console.error('이동 중 터치 정보를 찾을 수 없습니다');
+            return;
+        }
+        
         const deltaY = touch.clientY - startY;
         const newTop = startTop + deltaY;
         
@@ -158,7 +179,10 @@ function initMobileDragFeature() {
         lastMoveY = touch.clientY;
         
         updateSidebarPosition(newTop);
+        
+        // 기본 스크롤 동작 방지
         e.preventDefault();
+        e.stopPropagation();
     }
     
     // 터치 종료
@@ -202,19 +226,32 @@ function initMobileDragFeature() {
     }
     
     // 이벤트 리스너 등록 (터치와 마우스 모두 지원)
-    dragHandle.addEventListener('touchstart', handleStart, { passive: false });
-    dragHandle.addEventListener('touchmove', handleMove, { passive: false });
-    dragHandle.addEventListener('touchend', handleEnd, { passive: false });
+    // 모바일에서 더 안정적인 터치 이벤트 처리
+    dragHandle.addEventListener('touchstart', handleStart, { passive: false, capture: true });
+    dragHandle.addEventListener('touchmove', handleMove, { passive: false, capture: true });
+    dragHandle.addEventListener('touchend', handleEnd, { passive: false, capture: true });
+    
+    // 터치 취소 이벤트도 처리
+    dragHandle.addEventListener('touchcancel', handleEnd, { passive: false });
     
     // 마우스 이벤트도 지원 (데스크톱 테스트용)
     dragHandle.addEventListener('mousedown', handleStart);
     document.addEventListener('mousemove', handleMove);
     document.addEventListener('mouseup', handleEnd);
     
-    // 초기 상태 설정
-    snapToPosition('collapsed', false);
+    // iOS Safari 호환성을 위한 추가 처리
+    dragHandle.style.touchAction = 'pan-y';
+    dragHandle.style.webkitTouchCallout = 'none';
+    dragHandle.style.webkitUserSelect = 'none';
     
+    // 디버깅을 위한 콘솔 로그 추가
     console.log('모바일 드래그 기능 초기화 완료');
+    console.log('드래그 핸들 요소:', dragHandle);
+    console.log('사이드바 요소:', sidebar);
+    console.log('현재 화면 크기:', window.innerWidth, 'x', window.innerHeight);
+    
+    // 초기 상태 설정 (마지막에 실행)
+    snapToPosition('collapsed', false);
 }
 
 // Mobile interaction initialization for responsive design
