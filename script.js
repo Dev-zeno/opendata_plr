@@ -7,52 +7,269 @@ let allLibraries = [];
 let markers = [];
 let seatMapData = {};
 
+// 모바일 기기 감지 함수
+function isMobileDevice() {
+    return window.innerWidth <= 768 || 
+           /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+}
+
+// 모바일에서 사이드바 자동 축소 함수
+function collapseSidebarOnMobile() {
+    if (!isMobileDevice()) {
+        return; // PC에서는 실행하지 않음
+    }
+    
+    const sidebar = document.getElementById('sidebar');
+    if (!sidebar) {
+        return;
+    }
+    
+    // 사이드바를 아래로 내리기 (축소 상태로 만들기)
+    sidebar.classList.remove('expanded');
+    sidebar.classList.add('collapsed');
+    sidebar.style.top = (window.innerHeight - 80) + 'px';
+    sidebar.style.transition = 'top 0.3s ease';
+    
+    // 전역 상태 동기화 (드래그 시스템과 동기화)
+    if (window.getSidebarState) {
+        const dragState = window.getSidebarState();
+        if (dragState) {
+            dragState.currentState = 'collapsed';
+        }
+    }
+    
+    // 애니메이션 완료 후 transition 제거
+    setTimeout(() => {
+        sidebar.style.transition = 'none';
+    }, 300);
+    
+    console.log('모바일에서 도서관 클릭 후 사이드바 자동 축소됨');
+}
+
+// 모바일 드래그 앤 드롭 기능 구현
+function initMobileDragFeature() {
+    if (!isMobileDevice()) {
+        return; // PC에서는 실행하지 않음
+    }
+    
+    const sidebar = document.getElementById('sidebar');
+    const dragHandle = document.querySelector('.mobile-drag-handle');
+    
+    if (!sidebar || !dragHandle) {
+        return;
+    }
+    
+    let isDragging = false;
+    let startY = 0;
+    let startTop = 0;
+    let currentTop = 0;
+    let velocity = 0;
+    let lastMoveTime = 0;
+    let lastMoveY = 0;
+    
+    // 드래그 상태 객체
+    const dragState = {
+        currentState: 'collapsed', // 'expanded', 'collapsed', 'middle'
+        expandedPosition: window.innerHeight * 0.25,
+        collapsedPosition: window.innerHeight - 80,
+        middlePosition: window.innerHeight * 0.6
+    };
+    
+    // 전역 상태 접근 함수
+    window.getSidebarState = () => dragState;
+    
+    // 위치 업데이트 함수
+    function updateSidebarPosition(top, animate = false) {
+        if (animate) {
+            sidebar.style.transition = 'top 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+            setTimeout(() => {
+                sidebar.style.transition = 'none';
+            }, 300);
+        } else {
+            sidebar.style.transition = 'none';
+        }
+        
+        sidebar.style.top = Math.max(0, Math.min(window.innerHeight - 50, top)) + 'px';
+        currentTop = top;
+    }
+    
+    // 상태에 따른 위치 설정
+    function snapToPosition(targetState, animate = true) {
+        let targetPosition;
+        
+        switch (targetState) {
+            case 'expanded':
+                targetPosition = dragState.expandedPosition;
+                sidebar.classList.remove('collapsed');
+                sidebar.classList.add('expanded');
+                break;
+            case 'collapsed':
+                targetPosition = dragState.collapsedPosition;
+                sidebar.classList.remove('expanded');
+                sidebar.classList.add('collapsed');
+                break;
+            case 'middle':
+                targetPosition = dragState.middlePosition;
+                sidebar.classList.remove('expanded', 'collapsed');
+                break;
+        }
+        
+        dragState.currentState = targetState;
+        updateSidebarPosition(targetPosition, animate);
+        
+        console.log(`사이드바 상태 변경: ${targetState}, 위치: ${targetPosition}px`);
+    }
+    
+    // 전역에서 접근 가능하도록 노출
+    window.snapToPosition = snapToPosition;
+    
+    // 터치 시작
+    function handleStart(e) {
+        const touch = e.touches ? e.touches[0] : e;
+        
+        isDragging = true;
+        startY = touch.clientY;
+        startTop = parseInt(sidebar.style.top) || currentTop;
+        velocity = 0;
+        lastMoveTime = Date.now();
+        lastMoveY = touch.clientY;
+        
+        sidebar.style.transition = 'none';
+        dragHandle.style.backgroundColor = 'rgba(59, 130, 246, 0.1)';
+        
+        e.preventDefault();
+    }
+    
+    // 터치 이동
+    function handleMove(e) {
+        if (!isDragging) return;
+        
+        const touch = e.touches ? e.touches[0] : e;
+        const deltaY = touch.clientY - startY;
+        const newTop = startTop + deltaY;
+        
+        // 속도 계산
+        const now = Date.now();
+        const timeDelta = now - lastMoveTime;
+        if (timeDelta > 0) {
+            velocity = (touch.clientY - lastMoveY) / timeDelta;
+        }
+        lastMoveTime = now;
+        lastMoveY = touch.clientY;
+        
+        updateSidebarPosition(newTop);
+        e.preventDefault();
+    }
+    
+    // 터치 종료
+    function handleEnd(e) {
+        if (!isDragging) return;
+        
+        isDragging = false;
+        dragHandle.style.backgroundColor = '';
+        
+        // 속도를 고려한 스냅 결정
+        const velocityThreshold = 0.5;
+        const currentPosition = currentTop;
+        
+        let targetState;
+        
+        if (Math.abs(velocity) > velocityThreshold) {
+            // 빠른 스와이프 - 방향에 따라 결정
+            if (velocity < -velocityThreshold) {
+                // 위로 스와이프
+                targetState = 'expanded';
+            } else {
+                // 아래로 스와이프
+                targetState = 'collapsed';
+            }
+        } else {
+            // 느린 드래그 - 위치에 따라 결정
+            const expandedThreshold = (dragState.expandedPosition + dragState.middlePosition) / 2;
+            const collapsedThreshold = (dragState.middlePosition + dragState.collapsedPosition) / 2;
+            
+            if (currentPosition < expandedThreshold) {
+                targetState = 'expanded';
+            } else if (currentPosition < collapsedThreshold) {
+                targetState = 'middle';
+            } else {
+                targetState = 'collapsed';
+            }
+        }
+        
+        snapToPosition(targetState);
+        e.preventDefault();
+    }
+    
+    // 이벤트 리스너 등록 (터치와 마우스 모두 지원)
+    dragHandle.addEventListener('touchstart', handleStart, { passive: false });
+    dragHandle.addEventListener('touchmove', handleMove, { passive: false });
+    dragHandle.addEventListener('touchend', handleEnd, { passive: false });
+    
+    // 마우스 이벤트도 지원 (데스크톱 테스트용)
+    dragHandle.addEventListener('mousedown', handleStart);
+    document.addEventListener('mousemove', handleMove);
+    document.addEventListener('mouseup', handleEnd);
+    
+    // 초기 상태 설정
+    snapToPosition('collapsed', false);
+    
+    console.log('모바일 드래그 기능 초기화 완료');
+}
+
 // Mobile interaction initialization for responsive design
 function initMobileInteractions() {
     const sidebar = document.getElementById('sidebar');
     const mobileToggle = document.getElementById('mobile-toggle');
     
+    // 모바일 드래그 기능 초기화
+    initMobileDragFeature();
+    
     // Mobile toggle button functionality - restored
     if (mobileToggle) {
         mobileToggle.addEventListener('click', function() {
-            // 현재 상태를 체크하여 토글
-            const isExpanded = sidebar.classList.contains('expanded') || 
-                              parseInt(sidebar.style.top) <= window.innerHeight * 0.4;
+            // 드래그 시스템에서 현재 상태 확인
+            const dragState = window.getSidebarState ? window.getSidebarState() : null;
             
-            if (isExpanded) {
-                // Collapse the sidebar
-                sidebar.classList.remove('expanded');
-                sidebar.classList.add('collapsed');
-                sidebar.style.top = (window.innerHeight - 80) + 'px';
-                sidebar.style.transition = 'top 0.3s ease';
-                
-                // 전역 상태 동기화 (드래그 시스템과 동기화)
-                if (window.getSidebarState) {
-                    const dragState = window.getSidebarState();
-                    if (dragState) {
-                        dragState.currentState = 'collapsed';
+            if (dragState) {
+                // 드래그 시스템이 있으면 그것을 사용
+                if (dragState.currentState === 'collapsed') {
+                    // 확장
+                    const snapToPosition = window.snapToPosition;
+                    if (snapToPosition) {
+                        snapToPosition('expanded');
+                    }
+                } else {
+                    // 축소
+                    const snapToPosition = window.snapToPosition;
+                    if (snapToPosition) {
+                        snapToPosition('collapsed');
                     }
                 }
             } else {
-                // Expand the sidebar
-                sidebar.classList.remove('collapsed');
-                sidebar.classList.add('expanded');
-                sidebar.style.top = (window.innerHeight * 0.25) + 'px';
-                sidebar.style.transition = 'top 0.3s ease';
+                // 기존 방식 사용 (폴백)
+                const isExpanded = sidebar.classList.contains('expanded') || 
+                                  parseInt(sidebar.style.top) <= window.innerHeight * 0.4;
                 
-                // 전역 상태 동기화
-                if (window.getSidebarState) {
-                    const dragState = window.getSidebarState();
-                    if (dragState) {
-                        dragState.currentState = 'expanded';
-                    }
+                if (isExpanded) {
+                    // Collapse the sidebar
+                    sidebar.classList.remove('expanded');
+                    sidebar.classList.add('collapsed');
+                    sidebar.style.top = (window.innerHeight - 80) + 'px';
+                    sidebar.style.transition = 'top 0.3s ease';
+                } else {
+                    // Expand the sidebar
+                    sidebar.classList.remove('collapsed');
+                    sidebar.classList.add('expanded');
+                    sidebar.style.top = (window.innerHeight * 0.25) + 'px';
+                    sidebar.style.transition = 'top 0.3s ease';
                 }
+                
+                // 애니메이션 완료 후 transition 제거
+                setTimeout(() => {
+                    sidebar.style.transition = 'none';
+                }, 300);
             }
-            
-            // 애니메이션 완료 후 transition 제거
-            setTimeout(() => {
-                sidebar.style.transition = 'none';
-            }, 300);
         });
     }
     
@@ -603,9 +820,21 @@ function displayLibraries(libraries) {
             `;
 
             resultItem.addEventListener('click', () => {
-                map.setCenter(new naver.maps.LatLng(lat, lon));
-                map.setZoom(15);
-                openInfoWindow(marker, lib);
+                // 모바일에서만 사이드바 먼저 축소
+                if (isMobileDevice()) {
+                    collapseSidebarOnMobile();
+                    // 사이드바 축소 애니메이션 완료 후 지도 이동
+                    setTimeout(() => {
+                        map.setCenter(new naver.maps.LatLng(lat, lon));
+                        map.setZoom(15);
+                        openInfoWindow(marker, lib);
+                    }, 300); // 사이드바 축소 애니메이션과 동일한 시간
+                } else {
+                    // PC에서는 기존 동작 유지
+                    map.setCenter(new naver.maps.LatLng(lat, lon));
+                    map.setZoom(15);
+                    openInfoWindow(marker, lib);
+                }
             });
 
             resultItem.style.height = '180px';
@@ -1186,7 +1415,8 @@ async function initialize() {
         setTimeout(() => {
             if (window.innerWidth <= 768) {
                 addHeaderClickToggle();
-                console.log('Header click toggle added for mobile');
+                initMobileDragFeature(); // 모바일 드래그 기능 초기화 추가
+                console.log('Header click toggle and mobile drag feature added for mobile');
             }
         }, 100);
         

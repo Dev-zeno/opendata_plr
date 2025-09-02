@@ -196,6 +196,54 @@ body {
    SIDEBAR STYLES
    ================================= */
 
+/* 모바일 드래그 핸들 스타일 */
+.mobile-drag-handle {
+    display: none; /* PC에서는 숨김 */
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 24px;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 12px 12px 0 0;
+    cursor: grab;
+    z-index: 1000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 8px 0;
+    box-sizing: border-box;
+}
+
+.mobile-drag-handle:active {
+    cursor: grabbing;
+}
+
+.drag-indicator {
+    width: 36px;
+    height: 4px;
+    background-color: #d1d5db;
+    border-radius: 2px;
+    transition: background-color 0.2s ease;
+}
+
+.mobile-drag-handle:hover .drag-indicator,
+.mobile-drag-handle:active .drag-indicator {
+    background-color: #9ca3af;
+}
+
+/* 모바일에서만 드래그 핸들 표시 */
+@media (max-width: 768px) {
+    .mobile-drag-handle {
+        display: flex !important;
+    }
+    
+    /* 사이드바 내용에 위쪽 여백 추가 (드래그 핸들 공간 확보) */
+    #sidebar .sidebar-header {
+        padding-top: 32px; /* 40px에서 32px로 감소 */
+    }
+}
+
 /* PC Sidebar (Original Design Preserved) - 완전 통합 스크롤 */
 @media (min-width: 769px) {
     #sidebar {
@@ -334,7 +382,7 @@ body {
 /* Mobile Sidebar Header */
 @media (max-width: 768px) {
     .sidebar-header {
-        padding: 20px 16px 16px;
+        padding: 16px 16px 16px; /* 상단 패딩 20px에서 16px로 감소 */
         user-select: none; /* 텍스트 선택 방지 */
         -webkit-user-select: none;
         position: relative;
@@ -345,7 +393,7 @@ body {
         font-size: 18px;
         font-weight: 700;
         color: #333;
-        margin: 12px 0 16px 0;
+        margin: 0 0 16px 0; /* 상단 마진 0으로 변경 */
         text-align: center;
         line-height: 1.3;
         cursor: pointer; /* h1 요소를 클릭 가능하게 */
@@ -609,7 +657,7 @@ body {
 @media (max-width: 768px) {
     #mobile-toggle {
         position: fixed;
-        bottom: 20px;
+        bottom: 35px; /* 20px에서 25px로 변경하여 5px 위로 이동 */
         right: 20px;
         width: 56px;
         height: 56px;
