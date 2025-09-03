@@ -53,18 +53,16 @@ function initializeMap() {
     }
     
     try {
-        // HTTPS 환경에서 지도 생성
+        // HTTPS 환경에서 지도 생성 - 확대/축소 컨트롤 제거
         map = new naver.maps.Map('map', {
             center: new naver.maps.LatLng(37.5665, 126.9780),
             zoom: 10,
             // HTTPS 호환 옵션 추가
-            scaleControl: true,
-            logoControl: true,
-            mapDataControl: false,
-            zoomControl: true,
-            zoomControlOptions: {
-                position: naver.maps.Position.TOP_RIGHT
-            }
+            scaleControl: false,  // 스케일 컨트롤 제거
+            logoControl: false,   // 로고 컨트롤 제거
+            mapDataControl: false, // 지도 데이터 컨트롤 제거
+            zoomControl: false,    // 확대/축소 컨트롤 제거
+            // 기존 zoomControlOptions 제거
         });
         
         // HTTPS 지도 크기 문제 해결을 위한 강제 리사이즈
