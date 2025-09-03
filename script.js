@@ -1,11 +1,49 @@
-const map = new naver.maps.Map('map', {
-    center: new naver.maps.LatLng(37.5665, 126.9780),
-    zoom: 10
-});
-
+// 전역 변수 선언
+let map = null; // 지도 객체는 초기화 후에 생성
 let allLibraries = [];
 let markers = [];
 let seatMapData = {};
+
+// 간단하고 안정적인 지도 초기화 함수
+function initializeMap() {
+    console.log('지도 초기화 시작...');
+    
+    // DOM 요소 확인
+    const mapContainer = document.getElementById('map');
+    if (!mapContainer) {
+        console.error('지도 컨테이너를 찾을 수 없습니다');
+        return false;
+    }
+    
+    // 네이버 지도 API 확인
+    if (typeof naver === 'undefined' || !naver.maps) {
+        console.error('네이버 지도 API가 로드되지 않았습니다');
+        return false;
+    }
+    
+    try {
+        // 간단한 지도 생성
+        map = new naver.maps.Map('map', {
+            center: new naver.maps.LatLng(37.5665, 126.9780),
+            zoom: 10
+        });
+        
+        // 지도 크기 문제 해결을 위한 강제 리사이즈
+        setTimeout(() => {
+            if (map) {
+                // 지도 컨테이너 크기 재계산
+                naver.maps.Event.trigger(map, 'resize');
+                console.log('지도 리사이즈 이벤트 트리거');
+            }
+        }, 200);
+        
+        console.log('네이버 지도 초기화 성공');
+        return true;
+    } catch (error) {
+        console.error('지도 생성 중 오류:', error);
+        return false;
+    }
+}
 
 // 캐시 시스템 (분 단위 캐시)
 const CACHE_DURATION = 5 * 60 * 1000; // 5분
@@ -297,6 +335,7 @@ function initMobileDragFeature() {
     function handleStart(e) {
         console.log('드래그 시작 이벤트:', e.type, e);
         
+        // 터치와 마우스 이벤트 모두 처리
         const touch = e.touches ? e.touches[0] : e;
         
         if (!touch) {
@@ -317,12 +356,18 @@ function initMobileDragFeature() {
         console.log('드래그 시작:', {
             startY: startY,
             startTop: startTop,
-            currentTop: currentTop
+            currentTop: currentTop,
+            touchType: e.type
         });
         
-        // 이벤트 전파 방지
+        // 이벤트 전파 방지 (더 강력하게)
         e.preventDefault();
         e.stopPropagation();
+        
+        // iOS Safari에서 추가 처리
+        if (e.touches) {
+            e.stopImmediatePropagation();
+        }
     }
     
     // 터치 이동
@@ -350,9 +395,14 @@ function initMobileDragFeature() {
         
         updateSidebarPosition(newTop);
         
-        // 기본 스크롤 동작 방지
+        // 더 강력한 스크롤 방지
         e.preventDefault();
         e.stopPropagation();
+        
+        // iOS Safari에서 추가 처리
+        if (e.touches) {
+            e.stopImmediatePropagation();
+        }
     }
     
     // 터치 종료
@@ -392,27 +442,96 @@ function initMobileDragFeature() {
         }
         
         snapToPosition(targetState);
+        
+        // 이벤트 전파 방지
         e.preventDefault();
+        
+        console.log('드래그 종료:', {
+            finalState: targetState,
+            velocity: velocity,
+            currentPosition: currentPosition
+        });
     }
     
     // 이벤트 리스너 등록 (터치와 마우스 모두 지원)
     // 모바일에서 더 안정적인 터치 이벤트 처리
-    dragHandle.addEventListener('touchstart', handleStart, { passive: false, capture: true });
-    dragHandle.addEventListener('touchmove', handleMove, { passive: false, capture: true });
-    dragHandle.addEventListener('touchend', handleEnd, { passive: false, capture: true });
     
-    // 터치 취소 이벤트도 처리
-    dragHandle.addEventListener('touchcancel', handleEnd, { passive: false });
+    // 드래그 핸들에 터치 이벤트 등록
+    dragHandle.addEventListener('touchstart', handleStart, { 
+        passive: false, 
+        capture: true 
+    });
+    dragHandle.addEventListener('touchmove', handleMove, { 
+        passive: false, 
+        capture: true 
+    });
+    dragHandle.addEventListener('touchend', handleEnd, { 
+        passive: false, 
+        capture: true 
+    });
+    dragHandle.addEventListener('touchcancel', handleEnd, { 
+        passive: false, 
+        capture: true 
+    });
+    
+    // 사이드바 전체에도 터치 이벤트 등록 (드래그 영역 확장)
+    sidebar.addEventListener('touchstart', function(e) {
+        // 사이드바 상단 영역 (100px)에서만 드래그 허용
+        const rect = sidebar.getBoundingClientRect();
+        const touchY = e.touches[0].clientY;
+        const relativeY = touchY - rect.top;
+        
+        if (relativeY <= 100) {
+            handleStart(e);
+        }
+    }, { passive: false, capture: true });
+    
+    sidebar.addEventListener('touchmove', function(e) {
+        if (isDragging) {
+            handleMove(e);
+        }
+    }, { passive: false, capture: true });
+    
+    sidebar.addEventListener('touchend', function(e) {
+        if (isDragging) {
+            handleEnd(e);
+        }
+    }, { passive: false, capture: true });
     
     // 마우스 이벤트도 지원 (데스크톱 테스트용)
     dragHandle.addEventListener('mousedown', handleStart);
     document.addEventListener('mousemove', handleMove);
     document.addEventListener('mouseup', handleEnd);
     
-    // iOS Safari 호환성을 위한 추가 처리
+    // iOS Safari 호환성을 위한 추가 처리 (강화됨)
     dragHandle.style.touchAction = 'pan-y';
     dragHandle.style.webkitTouchCallout = 'none';
     dragHandle.style.webkitUserSelect = 'none';
+    dragHandle.style.webkitTapHighlightColor = 'transparent';
+    dragHandle.style.userSelect = 'none';
+    dragHandle.style.msUserSelect = 'none';
+    dragHandle.style.mozUserSelect = 'none';
+    
+    // 사이드바에도 동일한 속성 적용
+    sidebar.style.touchAction = 'pan-y';
+    sidebar.style.webkitOverflowScrolling = 'touch';
+    sidebar.style.webkitTransform = 'translate3d(0,0,0)'; // 하드웨어 가속 활성화
+    
+    // 시각적 피드백을 위한 추가 스타일
+    dragHandle.style.cursor = 'grab';
+    dragHandle.style.willChange = 'background-color';
+    
+    // 드래그 중 커서 변경
+    const originalCursor = dragHandle.style.cursor;
+    
+    // 드래그 시작 시 커서 변경 이벤트
+    dragHandle.addEventListener('touchstart', function() {
+        dragHandle.style.cursor = 'grabbing';
+    }, { passive: true });
+    
+    dragHandle.addEventListener('touchend', function() {
+        dragHandle.style.cursor = originalCursor;
+    }, { passive: true });
     
     // 디버깅을 위한 콘솔 로그 추가
     console.log('모바일 드래그 기능 초기화 완료');
@@ -424,6 +543,70 @@ function initMobileDragFeature() {
     snapToPosition('collapsed', false);
 }
 
+// 플로팅 버튼 초기화 함수
+function initFloatingButtons() {
+    const floatingButtons = document.querySelectorAll('.floating-btn');
+    
+    floatingButtons.forEach((button, index) => {
+        button.addEventListener('click', function() {
+            const title = this.getAttribute('title');
+            console.log('플로팅 버튼 클릭:', title);
+            
+            switch(title) {
+                case '위치':
+                    // 사용자 위치 요청 기능
+                    if (navigator.geolocation) {
+                        navigator.geolocation.getCurrentPosition(function(position) {
+                            const lat = position.coords.latitude;
+                            const lng = position.coords.longitude;
+                            
+                            if (window.map) {
+                                map.setCenter(new naver.maps.LatLng(lat, lng));
+                                map.setZoom(15);
+                                
+                                // 사용자 위치 마커 추가
+                                new naver.maps.Marker({
+                                    position: new naver.maps.LatLng(lat, lng),
+                                    map: map,
+                                    title: '내 위치',
+                                    icon: {
+                                        content: '<div style="background: #ff4444; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>',
+                                        anchor: new naver.maps.Point(6, 6)
+                                    }
+                                });
+                                
+                                console.log('사용자 위치로 이동:', lat, lng);
+                            }
+                        }, function(error) {
+                            console.error('위치 정보를 가져올 수 없습니다:', error);
+                            alert('위치 정보를 가져올 수 없습니다. 브라우저에서 위치 권한을 허용해주세요.');
+                        });
+                    } else {
+                        alert('이 브라우저는 위치 서비스를 지원하지 않습니다.');
+                    }
+                    break;
+                    
+                case '즐겨찾기':
+                    // 즐겨찾기 기능 (추후 구현)
+                    console.log('즐겨찾기 기능 - 추후 구현 예정');
+                    alert('즐겨찾기 기능은 추후 추가될 예정입니다.');
+                    break;
+                    
+                case '레이어':
+                    // 레이어 토글 기능 (추후 구현)
+                    console.log('레이어 기능 - 추후 구현 예정');
+                    alert('레이어 기능은 추후 추가될 예정입니다.');
+                    break;
+                    
+                default:
+                    console.log('알 수 없는 버튼:', title);
+            }
+        });
+    });
+    
+    console.log('플로팅 버튼 초기화 완료:', floatingButtons.length, '개 버튼');
+}
+
 // Mobile interaction initialization for responsive design
 function initMobileInteractions() {
     const sidebar = document.getElementById('sidebar');
@@ -431,6 +614,9 @@ function initMobileInteractions() {
     
     // 모바일 드래그 기능 초기화
     initMobileDragFeature();
+    
+    // 플로팅 버튼 초기화
+    initFloatingButtons();
     
     // Mobile toggle button functionality - restored
     if (mobileToggle) {
@@ -1679,7 +1865,16 @@ async function initialize() {
     // 1. 즉시 UI 표시 (가장 빠른 시각적 피드백)
     showLoadingIndicator();
     
-    // 2. 기본 UI 구성 요소 즉시 초기화
+    try {
+        // 2. 네이버 지도 초기화 (가장 중요!)
+        console.log('네이버 지도 초기화 시작...');
+        const mapInitSuccess = initializeMap();
+        if (!mapInitSuccess) {
+            throw new Error('네이버 지도 초기화 실패');
+        }
+        console.log('네이버 지도 초기화 성공');
+        
+        // 3. 기본 UI 구성 요소 초기화
     if (window.innerWidth > 768) {
         initDesktopSidebar();
         initializeSidebarForScreenSize();
@@ -1690,11 +1885,10 @@ async function initialize() {
         console.log('모바일 인터렉션 초기화 완료');
     }
     
-    // 3. 업데이트 시간 먼저 표시 (정적 콘텐츠)
-    setUpdateTime();
-    
-    try {
-        // 4. 비동기 데이터 로딩 시작 (백그라운드에서)
+        // 4. 업데이트 시간 먼저 표시 (정적 콘텐츠)
+        setUpdateTime();
+        
+        // 5. 비동기 데이터 로딩 시작 (백그라운드에서)
         console.log('Starting parallel data fetch...');
         
         // 캐시된 데이터가 있는지 먼저 확인
@@ -1738,17 +1932,21 @@ async function initialize() {
             if (window.innerWidth > 768) {
                 initDesktopSidebar();
                 initializeSidebarForScreenSize();
-            } else {
-                addHeaderClickToggle();
-                initMobileDragFeature();
             }
-            console.log('추가 초기화 작업 완료');
+            // 모바일 초기화는 이미 완료됨, 헤더 클릭 토글은 DOMContentLoaded에서 처리
+            console.log('추가 초기화 작업 완료 - 중복 방지');
         }, 100);
         
     } catch (error) {
         console.error('Error during initialization:', error);
         hideLoadingIndicator();
-        showErrorMessage('데이터 로딩 중 오류가 발생했습니다. 페이지를 새로고침해주세요.');
+        
+        // 지도 로드 실패 시 사용자에게 명확한 메시지 표시
+        if (error.message.includes('네이버 지도')) {
+            showErrorMessage('네이버 지도를 로드할 수 없습니다. 네트워크 연결을 확인하고 페이지를 새로고침해주세요.');
+        } else {
+            showErrorMessage('응용 프로그램 초기화 중 오류가 발생했습니다. 페이지를 새로고침해주세요.');
+        }
     }
 }
 
@@ -1839,12 +2037,8 @@ initialize();
 window.addEventListener('DOMContentLoaded', () => {
     console.log('DOMContentLoaded event fired');
     
-    // PC 버전 사이드바 초기화
-    initDesktopSidebar();
-    initializeSidebarForScreenSize();
-    
-    // 모바일 인터렉션 초기화
-    initMobileInteractions();
+    // 플로팅 버튼 초기화 (전체 화면에서 동작)
+    initFloatingButtons();
     
     // 헤더 클릭 토글 기능 다시 초기화 (확실히 동작하도록)
     setTimeout(() => {
@@ -1862,9 +2056,17 @@ window.addEventListener('DOMContentLoaded', () => {
         cityButtonsContainer.style.display = isCollapsed ? 'none' : 'grid';
     });
     
-    // 화면 크기 변경 시 사이드바 재초기화
+    // 화면 크기 변경 시 사이드바 재초기화 및 지도 리사이즈
     window.addEventListener('resize', () => {
         initializeSidebarForScreenSize();
+        
+        // 지도 리사이즈 (지도가 있을 때만)
+        if (map) {
+            setTimeout(() => {
+                naver.maps.Event.trigger(map, 'resize');
+                console.log('윈도우 리사이즈에 따른 지도 리사이즈');
+            }, 100);
+        }
     });
 });
 

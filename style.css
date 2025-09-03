@@ -202,7 +202,7 @@ body {
     top: 0;
     left: 0;
     right: 0;
-    height: 24px;
+    height: 32px; /* 높이 증가 */
     background: rgba(255, 255, 255, 0.95);
     border-radius: 12px 12px 0 0;
     cursor: grab;
@@ -211,13 +211,17 @@ body {
     align-items: center;
     padding: 8px 0;
     box-sizing: border-box;
-    /* 모바일 터치 최적화 */
+    /* 모바일 터치 최적화 (강화됨) */
     touch-action: pan-y;
     -webkit-touch-callout: none;
     -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
     -moz-user-select: none;
     -ms-user-select: none;
     user-select: none;
+    /* iOS Safari 추가 최적화 */
+    -webkit-transform: translate3d(0,0,0);
+    will-change: background-color, transform;
     /* 기본값: 숨김 (PC용) */
     display: none;
 }
@@ -227,16 +231,25 @@ body {
 }
 
 .drag-indicator {
-    width: 36px;
-    height: 4px;
-    background-color: #d1d5db;
-    border-radius: 2px;
+    width: 48px; /* 크기 증가 */
+    height: 5px; /* 높이 증가 */
+    background-color: #9ca3af; /* 더 진한 색상 */
+    border-radius: 3px;
     transition: background-color 0.2s ease;
+    /* 그림자 추가로 시각적 강조 */
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .mobile-drag-handle:hover .drag-indicator,
 .mobile-drag-handle:active .drag-indicator {
-    background-color: #9ca3af;
+    background-color: #6b7280; /* 더 진한 색상 */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+/* 터치 시 반응 효과 강화 */
+.mobile-drag-handle:active {
+    background-color: rgba(59, 130, 246, 0.1);
+    transform: scale(1.02);
 }
 
 /* 모바일에서만 드래그 핸들 표시 */
@@ -247,7 +260,7 @@ body {
     
     /* 사이드바 내용에 위쪽 여백 추가 (드래그 핸들 공간 확보) */
     #sidebar .sidebar-header {
-        padding-top: 32px; /* 40px에서 32px로 감소 */
+        padding-top: 40px; /* 32px에서 40px로 증가 */
     }
 }
 

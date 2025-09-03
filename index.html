@@ -32,6 +32,9 @@
         document.head.appendChild(fontAwesome);
     </script>
     
+    <!-- 네이버 지도 API 동기 로드 (지도 초기화를 위해 중요) -->
+    <script type="text/javascript" src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=hgte1ya8vs"></script>
+    
     <!-- SEO 메타데이터 -->
     <meta property="og:title" content="전국 공공도서관 열람실 현황">
     <meta name="title" property="og:title" content="전국 공공도서관 열람실 현황"/>
@@ -43,7 +46,6 @@
     <!-- 중요하지 않은 리소스들은 defer로 지연 로드 -->
     <script async defer src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5020907728147444" crossorigin="anonymous"></script>
     <script async defer src="https://www.googletagmanager.com/gtag/js?id=G-930VGD9QPS"></script>
-    <script type="text/javascript" src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=hgte1ya8vs" async></script>
     
     <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
@@ -166,27 +168,15 @@
         </div>
     </div>
     
-    <!-- 스크립트를 비동기로 로드하여 렌더링 차단 방지 -->
+    <!-- 메인 스크립트 동기 로드 (모바일 기능 정상 동작을 위해) -->
+    <script src="script.js"></script>
+    
     <script>
-        // 주요 스크립트 비동기 로드
-        function loadScript(src, callback) {
-            const script = document.createElement('script');
-            script.src = src;
-            script.async = true;
-            if (callback) script.onload = callback;
-            document.head.appendChild(script);
-        }
-        
-        // Google Analytics 덕더링
+        // Google Analytics 설정
         window.dataLayer = window.dataLayer || [];
         function gtag(){dataLayer.push(arguments);}
         gtag('js', new Date());
         gtag('config', 'G-930VGD9QPS');
-        
-        // 도큐먼트 준비 완료 후 메인 스크립트 로드
-        document.addEventListener('DOMContentLoaded', function() {
-            loadScript('script.js');
-        });
     </script>
 </body>
 <!-- Google Tag Manager (noscript) -->
