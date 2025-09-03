@@ -7,6 +7,176 @@ let allLibraries = [];
 let markers = [];
 let seatMapData = {};
 
+// 캐시 시스템 (분 단위 캐시)
+const CACHE_DURATION = 5 * 60 * 1000; // 5분
+
+function setCachedData(key, data) {
+    try {
+        const cacheItem = {
+            data: data,
+            timestamp: Date.now()
+        };
+        localStorage.setItem(`opendata_${key}`, JSON.stringify(cacheItem));
+        console.log(`데이터 캐시 저장: ${key}`);
+    } catch (error) {
+        console.warn('캐시 저장 실패:', error);
+    }
+}
+
+function getCachedData(key) {
+    try {
+        const cached = localStorage.getItem(`opendata_${key}`);
+        if (!cached) return null;
+        
+        const cacheItem = JSON.parse(cached);
+        const now = Date.now();
+        
+        if (now - cacheItem.timestamp < CACHE_DURATION) {
+            console.log(`캐시된 데이터 사용: ${key}`);
+            return cacheItem.data;
+        } else {
+            // 만료된 캐시 삭제
+            localStorage.removeItem(`opendata_${key}`);
+            console.log(`만료된 캐시 삭제: ${key}`);
+            return null;
+        }
+    } catch (error) {
+        console.warn('캐시 로드 실패:', error);
+        return null;
+    }
+}
+
+// 로딩 인디케이터 기능
+function showLoadingIndicator() {
+    const existingLoader = document.getElementById('loading-indicator');
+    if (existingLoader) return;
+    
+    const loader = document.createElement('div');
+    loader.id = 'loading-indicator';
+    loader.innerHTML = `
+        <div style="
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            backdrop-filter: blur(5px);
+        ">
+            <div style="
+                text-align: center;
+                color: #333;
+                font-family: 'Noto Sans KR', sans-serif;
+            ">
+                <div style="
+                    width: 50px;
+                    height: 50px;
+                    border: 4px solid #f3f3f3;
+                    border-top: 4px solid #3b82f6;
+                    border-radius: 50%;
+                    animation: spin 1s linear infinite;
+                    margin: 0 auto 16px;
+                "></div>
+                <div style="font-size: 16px; font-weight: 500;">도서관 데이터 로딩 중...</div>
+                <div style="font-size: 14px; color: #666; margin-top: 8px;">잠시만 기다려주세요</div>
+            </div>
+        </div>
+        <style>
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+        </style>
+    `;
+    document.body.appendChild(loader);
+}
+
+function hideLoadingIndicator() {
+    const loader = document.getElementById('loading-indicator');
+    if (loader) {
+        loader.remove();
+    }
+}
+
+function showErrorMessage(message) {
+    const errorDiv = document.createElement('div');
+    errorDiv.id = 'error-message';
+    errorDiv.innerHTML = `
+        <div style="
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #fee;
+            color: #c53030;
+            padding: 16px 24px;
+            border-radius: 8px;
+            border: 1px solid #feb2b2;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            z-index: 10000;
+            font-family: 'Noto Sans KR', sans-serif;
+            max-width: 90%;
+        ">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <i class="fas fa-exclamation-triangle"></i>
+                <span>${message}</span>
+                <button onclick="this.parentElement.parentElement.remove()" style="
+                    margin-left: 12px;
+                    background: none;
+                    border: none;
+                    color: #c53030;
+                    cursor: pointer;
+                    font-size: 18px;
+                ">&times;</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(errorDiv);
+    
+    // 5초 후 자동 제거
+    setTimeout(() => {
+        if (errorDiv && errorDiv.parentNode) {
+            errorDiv.remove();
+        }
+    }, 5000);
+}
+
+// 백그라운드 데이터 새로고침
+async function refreshDataInBackground() {
+    console.log('백그라운드에서 데이터 새로고침 시작...');
+    try {
+        const [newSeatMapData, newLibraries] = await Promise.all([
+            fetchSeatMapDataSilent(),
+            fetchLibrariesSilent()
+        ]);
+        
+        // 새 데이터로 업데이트
+        if (newLibraries && newLibraries.length > 0) {
+            allLibraries = newLibraries;
+            setCachedData('libraries', allLibraries);
+            
+            // UI 업데이트
+            displayLibraries(allLibraries);
+            updateStatistics(allLibraries);
+            generateCityButtons(allLibraries);
+            setUpdateTime();
+            
+            console.log('백그라운드 데이터 새로고침 완료');
+        }
+        
+        if (newSeatMapData) {
+            seatMapData = newSeatMapData;
+            setCachedData('seatMap', seatMapData);
+        }
+    } catch (error) {
+        console.warn('백그라운드 새로고침 실패:', error);
+    }
+}
+
 // 모바일 기기 감지 함수
 function isMobileDevice() {
     return window.innerWidth <= 768 || 
@@ -596,6 +766,86 @@ function fetchLibraries() {
         });
 }
 
+// 백그라운드 데이터 로딩용 (Silent 버전)
+async function fetchSeatMapDataSilent() {
+    try {
+        const response = await fetch(`https://raw.githubusercontent.com/Dev-zeno/opendata_plr/refs/heads/main/library_data.json?t=${Date.now()}`, { 
+            cache: 'no-store',
+            headers: {
+                'User-Agent': 'OpenData-Library-App/1.0'
+            }
+        });
+        
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        
+        const data = await response.json();
+        const processedData = {};
+        
+        if (data && Array.isArray(data)) {
+            data.forEach((item) => {
+                if (item.stdgCd && item.pblibId && item.rdrmId && item.rdrmUrl) {
+                    const key = `${item.stdgCd}_${item.pblibId}_${item.rdrmId}`;
+                    processedData[key] = {
+                        url: item.rdrmUrl,
+                        rdrmNm: item.rdrmNm || '열람실',
+                        pblibNm: item.pblibNm || '도서관'
+                    };
+                }
+            });
+        }
+        
+        return processedData;
+    } catch (error) {
+        console.warn('Silent seat map data fetch failed:', error);
+        return null;
+    }
+}
+
+async function fetchLibrariesSilent() {
+    try {
+        const [libraryResponse, readingRoomResponse] = await Promise.all([
+            fetch(`/api/proxy?t=${Date.now()}`, { cache: 'no-store' }),
+            fetch(`/api/proxy-reading-room?t=${Date.now()}`, { cache: 'no-store' })
+        ]);
+        
+        const [libraryData, readingRoomData] = await Promise.all([
+            libraryResponse.json(),
+            readingRoomResponse.json()
+        ]);
+        
+        if (libraryData?.body?.item && readingRoomData?.body?.item) {
+            const validLibraries = libraryData.body.item.filter(lib => 
+                lib.pblibId && String(lib.pblibId).trim() !== '' && lib.stdgCd && String(lib.stdgCd).trim() !== ''
+            );
+            const validReadingRooms = readingRoomData.body.item.filter(room => 
+                room.pblibId && String(room.pblibId).trim() !== '' && room.stdgCd && String(room.stdgCd).trim() !== ''
+            );
+            
+            const readingRoomMap = new Map();
+            validReadingRooms.forEach(room => {
+                const key = `${String(room.stdgCd).trim()}_${String(room.pblibId).trim()}`;
+                if (!readingRoomMap.has(key)) {
+                    readingRoomMap.set(key, []);
+                }
+                readingRoomMap.get(key).push(room);
+            });
+            
+            return validLibraries.map(lib => {
+                const key = `${String(lib.stdgCd).trim()}_${String(lib.pblibId).trim()}`;
+                return {
+                    ...lib,
+                    readingRooms: readingRoomMap.get(key) || []
+                };
+            });
+        }
+        
+        return null;
+    } catch (error) {
+        console.warn('Silent library data fetch failed:', error);
+        return null;
+    }
+}
+
 function generateCityButtons(libraries) {
     const cityButtonsContainer = document.getElementById('city-buttons');
     const mobileCityButtonsContainer = document.getElementById('mobile-city-buttons');
@@ -984,6 +1234,13 @@ function displayLibraries(libraries) {
 
 function createBubbleButtons() {
     const bubbleContainer = document.getElementById('bubble-container');
+    
+    // Add null check to prevent error if element doesn't exist
+    if (!bubbleContainer) {
+        console.warn('bubble-container element not found - skipping bubble button creation');
+        return;
+    }
+    
     bubbleContainer.innerHTML = ''; // Clear previous buttons
     const addressPrefixes = new Set();
     allLibraries.forEach(lib => {
@@ -1419,46 +1676,79 @@ document.addEventListener('keydown', function(event) {
 async function initialize() {
     console.log('Initializing application...');
     
+    // 1. 즉시 UI 표시 (가장 빠른 시각적 피드백)
+    showLoadingIndicator();
+    
+    // 2. 기본 UI 구성 요소 즉시 초기화
+    if (window.innerWidth > 768) {
+        initDesktopSidebar();
+        initializeSidebarForScreenSize();
+        console.log('데스크톱 사이드바 우선 초기화 완료');
+    } else {
+        // 모바일 인터렉션 먼저 초기화
+        initMobileInteractions();
+        console.log('모바일 인터렉션 초기화 완료');
+    }
+    
+    // 3. 업데이트 시간 먼저 표시 (정적 콘텐츠)
+    setUpdateTime();
+    
     try {
-        // 즉시 데스크톱 사이드바 초기화 (다른 모든 것보다 먼저)
-        if (window.innerWidth > 768) {
-            initDesktopSidebar();
-            initializeSidebarForScreenSize();
-            console.log('데스크톱 사이드바 우선 초기화 완료');
+        // 4. 비동기 데이터 로딩 시작 (백그라운드에서)
+        console.log('Starting parallel data fetch...');
+        
+        // 캐시된 데이터가 있는지 먼저 확인
+        const cachedLibraries = getCachedData('libraries');
+        const cachedSeatMap = getCachedData('seatMap');
+        
+        if (cachedLibraries && cachedSeatMap) {
+            console.log('Using cached data for faster loading');
+            allLibraries = cachedLibraries;
+            seatMapData = cachedSeatMap;
+            
+            // 캐시된 데이터로 즉시 UI 업데이트
+            displayLibraries(allLibraries);
+            updateStatistics(allLibraries);
+            generateCityButtons(allLibraries);
+            createBubbleButtons();
+            hideLoadingIndicator();
+            
+            // 백그라운드에서 데이터 새로고침
+            refreshDataInBackground();
+        } else {
+            // 캐시가 없으면 새로 로드
+            await Promise.all([
+                fetchSeatMapData(),
+                fetchLibraries()
+            ]);
+            
+            // 데이터를 캐시에 저장
+            setCachedData('libraries', allLibraries);
+            setCachedData('seatMap', seatMapData);
+            
+            console.log('All data fetched successfully - seatMapData and libraries loaded');
+            
+            // 5. 데이터 로딩 완료 후 UI 업데이트
+            createBubbleButtons();
+            hideLoadingIndicator();
         }
         
-        // 좌석배치도 데이터와 도서관 데이터를 동시에 로드하되 모두 완료될 때까지 대기
-        console.log('Starting parallel data fetch...');
-        await Promise.all([
-            fetchSeatMapData(),
-            fetchLibraries()
-        ]);
-        console.log('All data fetched successfully - seatMapData and libraries loaded');
-        
-        // 데이터 로딩 완료 후 UI 업데이트
-        createBubbleButtons();
-        console.log('Bubble buttons created');
-        
-        // 다시 한 번 데스크톱 사이드바 확인
-        if (window.innerWidth > 768) {
-            setTimeout(() => {
+        // 6. 추가 초기화 작업 (지연 실행)
+        setTimeout(() => {
+            if (window.innerWidth > 768) {
                 initDesktopSidebar();
                 initializeSidebarForScreenSize();
-                console.log('데스크톱 사이드바 재초기화 완료');
-            }, 100);
-        }
-        
-        // DOM이 준비된 후 헤더 클릭 초기화 (모바일용)
-        setTimeout(() => {
-            if (window.innerWidth <= 768) {
+            } else {
                 addHeaderClickToggle();
-                initMobileDragFeature(); // 모바일 드래그 기능 초기화 추가
-                console.log('Header click toggle and mobile drag feature added for mobile');
+                initMobileDragFeature();
             }
+            console.log('추가 초기화 작업 완료');
         }, 100);
         
     } catch (error) {
         console.error('Error during initialization:', error);
+        hideLoadingIndicator();
+        showErrorMessage('데이터 로딩 중 오류가 발생했습니다. 페이지를 새로고침해주세요.');
     }
 }
 

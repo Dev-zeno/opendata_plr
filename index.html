@@ -1,8 +1,50 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5020907728147444"
-     crossorigin="anonymous"></script>
+    <!-- 크리티컬 리소스 먼저 로드 -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>전국 공공도서관 열람실 현황</title>
+    
+    <!-- 프리로드 필수 리소스 -->
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <link rel="preload" href="style.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <link rel="preload" href="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=hgte1ya8vs" as="script">
+    
+    <!-- 인라인 크리티컬 CSS -->
+    <style>
+        body{font-family:'Noto Sans KR',sans-serif;margin:0;padding:0;height:100vh;overflow:hidden;background:#f5f5f5;}
+        #loading-indicator{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(255,255,255,0.95);display:flex;justify-content:center;align-items:center;z-index:9999;}
+    </style>
+    
+    <!-- 비동기 리소스 (렌더링 블로킹 방지) -->
+    <script>
+        // Tailwind CSS 비동기 로드
+        const tailwindScript = document.createElement('script');
+        tailwindScript.src = 'https://cdn.tailwindcss.com';
+        tailwindScript.async = true;
+        document.head.appendChild(tailwindScript);
+        
+        // Font Awesome 비동기 로드
+        const fontAwesome = document.createElement('link');
+        fontAwesome.rel = 'stylesheet';
+        fontAwesome.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css';
+        document.head.appendChild(fontAwesome);
+    </script>
+    
+    <!-- SEO 메타데이터 -->
+    <meta property="og:title" content="전국 공공도서관 열람실 현황">
+    <meta name="title" property="og:title" content="전국 공공도서관 열람실 현황"/>
+    <meta property="og:description" content="전국 공공도서관의 실시간 좌석 현황을 확인하세요. 지역별 도서관 검색 및 지도 제공.">
+    <meta property="og:url" content="https://opendata-plr.vercel.app/">    
+    <meta name="keywords" content="전국, 공공도서관, 도서관, 열람실, 좌석, 실시간, 현황">
+    <meta property="og:site_name" content="전국 공공도서관 열람실 현황">
+    
+    <!-- 중요하지 않은 리소스들은 defer로 지연 로드 -->
+    <script async defer src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5020907728147444" crossorigin="anonymous"></script>
+    <script async defer src="https://www.googletagmanager.com/gtag/js?id=G-930VGD9QPS"></script>
+    <script type="text/javascript" src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=hgte1ya8vs" async></script>
+    
     <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -10,21 +52,6 @@
     'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
     })(window,document,'script','dataLayer','GTM-M36CX7BQ');</script>
     <!-- End Google Tag Manager -->
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <meta property="og:title" content="전국 공공도서관 열람실 현황">
-    <meta name="title" property="og:title" content="전국 공공도서관 열람실 현황"/>
-    <meta property="og:description" content="전국 공공도서관의 실시간 좌석 현황을 확인하세요. 지역별 도서관 검색 및 지도 제공.">
-    <meta property="og:url" content="https://opendata-plr.vercel.app/">    
-    <meta name="keywords" content="전국, 공공도서관, 도서관, 열람실, 좌석, 실시간, 현황">
-    <meta property="og:site_name" content="전국 공공도서관 열람실 현황">
-    <title>전국 공공도서관 열람실 현황</title>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="style.css">
-    <style>body{font-family:'Noto Sans KR',sans-serif;}</style>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <script type="text/javascript" src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=hgte1ya8vs"></script>
 </head>
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-930VGD9QPS"></script>
@@ -51,6 +78,11 @@
 
     <!-- Main Sidebar (Original PC Design) -->
     <div id="sidebar">
+        <!-- 모바일 드래그 핸들 -->
+        <div class="mobile-drag-handle">
+            <div class="drag-indicator"></div>
+        </div>
+        
         <div class="sidebar-header">
             <h1>전국 공공도서관 실시간 좌석현황</h1>
             <div class="search-container">
@@ -134,7 +166,28 @@
         </div>
     </div>
     
-    <script src="script.js"></script>
+    <!-- 스크립트를 비동기로 로드하여 렌더링 차단 방지 -->
+    <script>
+        // 주요 스크립트 비동기 로드
+        function loadScript(src, callback) {
+            const script = document.createElement('script');
+            script.src = src;
+            script.async = true;
+            if (callback) script.onload = callback;
+            document.head.appendChild(script);
+        }
+        
+        // Google Analytics 덕더링
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-930VGD9QPS');
+        
+        // 도큐먼트 준비 완료 후 메인 스크립트 로드
+        document.addEventListener('DOMContentLoaded', function() {
+            loadScript('script.js');
+        });
+    </script>
 </body>
 <!-- Google Tag Manager (noscript) -->
 <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-M36CX7BQ"
