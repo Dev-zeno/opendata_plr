@@ -1078,30 +1078,8 @@ function generateCityButtons(libraries) {
             btn.innerHTML = `${label} <span class="count">${cnt}</span>`;
             btn.setAttribute('data-sido', sido);
             btn.addEventListener('click', () => {
-                // Check if button is already active (toggle functionality)
-                const isActive = btn.classList.contains('active');
-                
-                // Clear all active states
-                document.querySelectorAll('#city-buttons .city-btn').forEach(b=>{
-                    b.classList.remove('active');
-                });
-                document.querySelectorAll('#mobile-city-buttons .city-btn').forEach(b=>{
-                    b.classList.remove('active');
-                });
-                
-                if (!isActive) {
-                    // Activate this button and filter
-                    btn.classList.add('active');
-                    // Find corresponding mobile button and activate it
-                    const mobileBtn = document.querySelector(`#mobile-city-buttons .city-btn[data-sido="${sido}"]`);
-                    if (mobileBtn) {
-                        mobileBtn.classList.add('active');
-                    }
-                    filterLibrariesBySido(sido, libraries);
-                } else {
-                    // Deactivate and show all libraries
-                    filterLibrariesBySido(null, libraries);
-                }
+                // 시도 클릭 시 시군구 목록 표시로 변경
+                showDistrictButtons(sido, libraries);
             });
             cityButtonsContainer.appendChild(btn);
         }
@@ -1113,29 +1091,12 @@ function generateCityButtons(libraries) {
             mobileBtn.setAttribute('data-sido', sido);
             mobileBtn.innerHTML = `${label} <span class="count">${cnt}</span>`;
             mobileBtn.addEventListener('click', () => {
-                // Check if button is already active (toggle functionality)
-                const isActive = mobileBtn.classList.contains('active');
-                
-                // Clear all active states
-                document.querySelectorAll('#city-buttons .city-btn').forEach(b=>{
-                    b.classList.remove('active');
-                });
-                document.querySelectorAll('#mobile-city-buttons .city-btn').forEach(b=>{
-                    b.classList.remove('active');
-                });
-                
-                if (!isActive) {
-                    // Activate this button and filter
-                    mobileBtn.classList.add('active');
-                    // Find corresponding desktop button and activate it
-                    const desktopBtn = document.querySelector(`#city-buttons .city-btn[data-sido="${sido}"]`);
-                    if (desktopBtn) {
-                        desktopBtn.classList.add('active');
-                    }
-                    filterLibrariesBySido(sido, libraries);
+                // 모바일에서는 모달 오픈으로 변경
+                if (isMobileDevice()) {
+                    openMobileDistrictModal(sido, libraries);
                 } else {
-                    // Deactivate and show all libraries
-                    filterLibrariesBySido(null, libraries);
+                    // PC에서는 기존 로직 유지 (이 코드는 실제로 실행되지 않음)
+                    showDistrictButtons(sido, libraries);
                 }
             });
             mobileCityButtonsContainer.appendChild(mobileBtn);
@@ -1143,30 +1104,130 @@ function generateCityButtons(libraries) {
     });
 }
 
-function filterLibrariesBySido(sido, libraries) {
-    const filtered = sido ? libraries.filter(lib => lib.pblibRoadNmAddr && lib.pblibRoadNmAddr.startsWith(sido)) : libraries;
-    displayLibraries(filtered);
-    updateStatistics(filtered);
-
-    // Update region label ("전국 도서관" -> "서울 도서관" 등)
-    const regionLabelEl = document.querySelector('#total-libraries')?.nextElementSibling;
-    if (regionLabelEl) {
-        if (sido) {
-            const abbrMap = {
-                '서울특별시':'서울','부산광역시':'부산','대구광역시':'대구','인천광역시':'인천','광주광역시':'광주','대전광역시':'대전','울산광역시':'울산','세종특별자치시':'세종',
-                '경기도':'경기','강원특별자치도':'강원','충청북도':'충북','충청남도':'충남','전북특별자치도':'전북','전라남도':'전남','경상북도':'경북','경상남도':'경남','제주특별자치도':'제주'
-            };
-            const labelPrefix = abbrMap[sido] || sido.replace(/(특별시|광역시|특별자치시|특별자치도|도)$/,'');
-            regionLabelEl.textContent = `${labelPrefix} 도서관`;
-        } else {
-            regionLabelEl.textContent = '전국 도서관';
-        }
+// 시군구 버튼들을 생성하고 표시하는 함수
+function showDistrictButtons(selectedSido, libraries) {
+    const cityContainer = document.getElementById('city-selection-container');
+    const districtContainer = document.getElementById('district-selection-container');
+    const currentCityName = document.getElementById('current-city-name');
+    const districtButtons = document.getElementById('district-buttons');
+    
+    if (!cityContainer || !districtContainer || !currentCityName || !districtButtons) {
+        console.error('필요한 DOM 요소를 찾을 수 없습니다');
+        return;
     }
     
-    // 해당 지역의 마커로 지도 이동 (sido가 있을 때만)
-    if (sido && filtered.length > 0) {
+    // 시도 이름을 간단히 표시
+    const abbrMap = {
+        '서울특별시':'서울','부산광역시':'부산','대구광역시':'대구','인천광역시':'인천',
+        '광주광역시':'광주','대전광역시':'대전','울산광역시':'울산','세종특별자치시':'세종',
+        '경기도':'경기','강원특별자치도':'강원','충청북도':'충북','충청남도':'충남',
+        '전북특별자치도':'전북','전라남도':'전남','경상북도':'경북','경상남도':'경남','제주특별자치도':'제주'
+    };
+    const cityDisplayName = abbrMap[selectedSido] || selectedSido.replace(/(특별시|광역시|특별자치시|특별자치도|도)$/,'');
+    currentCityName.textContent = cityDisplayName;
+    
+    // 해당 시도의 도서관들만 필터링
+    const sidoLibraries = libraries.filter(lib => 
+        lib.pblibRoadNmAddr && lib.pblibRoadNmAddr.startsWith(selectedSido)
+    );
+    
+    // 시군구별 도서관 개수 집계
+    const districtCounts = new Map();
+    sidoLibraries.forEach(lib => {
+        if (lib.pblibRoadNmAddr) {
+            const parts = lib.pblibRoadNmAddr.split(' ');
+            if (parts.length > 1) {
+                const district = parts[1];
+                districtCounts.set(district, (districtCounts.get(district) || 0) + 1);
+            }
+        }
+    });
+    
+    // 시군구 버튼들 생성
+    districtButtons.innerHTML = '';
+    
+    // "전체" 버튼 먼저 추가
+    const allBtn = document.createElement('button');
+    allBtn.className = 'district-btn active';
+    allBtn.innerHTML = `전체 <span class="count">${sidoLibraries.length}</span>`;
+    allBtn.addEventListener('click', () => {
+        // 모든 시군구 버튼 비활성화
+        document.querySelectorAll('.district-btn').forEach(btn => btn.classList.remove('active'));
+        allBtn.classList.add('active');
+        
+        // 해당 시도의 모든 도서관 표시
+        displayLibraries(sidoLibraries);
+        updateStatistics(sidoLibraries);
+        updateRegionLabel(`${cityDisplayName} 도서관`);
+        
+        // 지도 이동
+        if (sidoLibraries.length > 0) {
+            const bounds = new naver.maps.LatLngBounds();
+            sidoLibraries.forEach(lib => {
+                const lat = parseFloat(lib.lat);
+                const lon = parseFloat(lib.lot);
+                if (!isNaN(lat) && !isNaN(lon)) {
+                    bounds.extend(new naver.maps.LatLng(lat, lon));
+                }
+            });
+            map.fitBounds(bounds);
+        }
+    });
+    districtButtons.appendChild(allBtn);
+    
+    // 시군구별 버튼들 생성 (도서관이 있는 곳만)
+    Array.from(districtCounts.entries())
+        .sort(([a], [b]) => a.localeCompare(b, 'ko'))
+        .forEach(([district, count]) => {
+            const btn = document.createElement('button');
+            btn.className = 'district-btn';
+            btn.innerHTML = `${district} <span class="count">${count}</span>`;
+            btn.setAttribute('data-district', district);
+            
+            btn.addEventListener('click', () => {
+                // 모든 시군구 버튼 비활성화
+                document.querySelectorAll('.district-btn').forEach(btn => btn.classList.remove('active'));
+                btn.classList.add('active');
+                
+                // 해당 시군구 도서관들만 필터링
+                const districtLibraries = sidoLibraries.filter(lib => 
+                    lib.pblibRoadNmAddr && lib.pblibRoadNmAddr.split(' ')[1] === district
+                );
+                
+                displayLibraries(districtLibraries);
+                updateStatistics(districtLibraries);
+                updateRegionLabel(`${cityDisplayName} ${district} 도서관`);
+                
+                // 지도 이동
+                if (districtLibraries.length > 0) {
+                    const bounds = new naver.maps.LatLngBounds();
+                    districtLibraries.forEach(lib => {
+                        const lat = parseFloat(lib.lat);
+                        const lon = parseFloat(lib.lot);
+                        if (!isNaN(lat) && !isNaN(lon)) {
+                            bounds.extend(new naver.maps.LatLng(lat, lon));
+                        }
+                    });
+                    map.fitBounds(bounds);
+                }
+            });
+            
+            districtButtons.appendChild(btn);
+        });
+    
+    // UI 전환
+    cityContainer.classList.add('hidden');
+    districtContainer.classList.remove('hidden');
+    
+    // 기본적으로 전체 선택 상태로 시작
+    displayLibraries(sidoLibraries);
+    updateStatistics(sidoLibraries);
+    updateRegionLabel(`${cityDisplayName} 도서관`);
+    
+    // 지도 이동
+    if (sidoLibraries.length > 0) {
         const bounds = new naver.maps.LatLngBounds();
-        filtered.forEach(lib => {
+        sidoLibraries.forEach(lib => {
             const lat = parseFloat(lib.lat);
             const lon = parseFloat(lib.lot);
             if (!isNaN(lat) && !isNaN(lon)) {
@@ -1174,6 +1235,197 @@ function filterLibrariesBySido(sido, libraries) {
             }
         });
         map.fitBounds(bounds);
+    }
+}
+
+// 지역 라벨 업데이트 함수
+function updateRegionLabel(labelText) {
+    const regionLabelEl = document.querySelector('#total-libraries')?.nextElementSibling;
+    if (regionLabelEl) {
+        regionLabelEl.textContent = labelText;
+    }
+}
+
+// 시도 선택으로 돌아가는 함수
+function backToCitySelection() {
+    const cityContainer = document.getElementById('city-selection-container');
+    const districtContainer = document.getElementById('district-selection-container');
+    
+    if (cityContainer && districtContainer) {
+        // UI 전환
+        districtContainer.classList.add('hidden');
+        cityContainer.classList.remove('hidden');
+        
+        // 전체 도서관 표시
+        displayLibraries(allLibraries);
+        updateStatistics(allLibraries);
+        updateRegionLabel('전국 도서관');
+        
+        // 지도를 전국 범위로 초기화
+        if (allLibraries.length > 0) {
+            const bounds = new naver.maps.LatLngBounds();
+            allLibraries.forEach(lib => {
+                const lat = parseFloat(lib.lat);
+                const lon = parseFloat(lib.lot);
+                if (!isNaN(lat) && !isNaN(lon)) {
+                    bounds.extend(new naver.maps.LatLng(lat, lon));
+                }
+            });
+            map.fitBounds(bounds);
+        }
+    }
+}
+
+// 모바일 시군구 선택 모달 열기
+function openMobileDistrictModal(selectedSido, libraries) {
+    if (!isMobileDevice()) {
+        console.log('모바일 환경이 아닙니다');
+        return;
+    }
+    
+    const modal = document.getElementById('mobile-district-modal');
+    const currentCityName = document.getElementById('mobile-current-city-name');
+    const allDistrictsBtn = document.getElementById('mobile-all-districts');
+    const districtList = document.getElementById('mobile-district-list');
+    
+    if (!modal || !currentCityName || !allDistrictsBtn || !districtList) {
+        console.error('모바일 모달 요소를 찾을 수 없습니다');
+        return;
+    }
+    
+    // 시도 이름 설정
+    const abbrMap = {
+        '서울특별시':'서울','부산광역시':'부산','대구광역시':'대구','인천광역시':'인천',
+        '광주광역시':'광주','대전광역시':'대전','울산광역시':'울산','세종특별자치시':'세종',
+        '경기도':'경기','강원특별자치도':'강원','충청북도':'충북','충청남도':'충남',
+        '전북특별자치도':'전북','전라남도':'전남','경상북도':'경북','경상남도':'경남','제주특별자치도':'제주'
+    };
+    const cityDisplayName = abbrMap[selectedSido] || selectedSido.replace(/(특별시|광역시|특별자치시|특별자치도|도)$/,'');
+    currentCityName.textContent = cityDisplayName;
+    
+    // 해당 시도의 도서관들만 필터링
+    const sidoLibraries = libraries.filter(lib => 
+        lib.pblibRoadNmAddr && lib.pblibRoadNmAddr.startsWith(selectedSido)
+    );
+    
+    // 전체 버튼 설정
+    allDistrictsBtn.innerHTML = `전체 <span class="count">${sidoLibraries.length}</span>`;
+    allDistrictsBtn.classList.add('selected');
+    
+    // 시군구별 도서관 개수 집계
+    const districtCounts = new Map();
+    sidoLibraries.forEach(lib => {
+        if (lib.pblibRoadNmAddr) {
+            const parts = lib.pblibRoadNmAddr.split(' ');
+            if (parts.length > 1) {
+                const district = parts[1];
+                districtCounts.set(district, (districtCounts.get(district) || 0) + 1);
+            }
+        }
+    });
+    
+    // 시군구 버튼들 생성
+    districtList.innerHTML = '';
+    
+    Array.from(districtCounts.entries())
+        .sort(([a], [b]) => a.localeCompare(b, 'ko'))
+        .forEach(([district, count]) => {
+            const btn = document.createElement('button');
+            btn.className = 'mobile-district-btn';
+            btn.innerHTML = `${district} <span class="count">${count}</span>`;
+            btn.setAttribute('data-district', district);
+            
+            btn.addEventListener('click', () => {
+                // 모든 버튼 선택 해제
+                document.querySelectorAll('.mobile-district-btn').forEach(b => b.classList.remove('selected'));
+                btn.classList.add('selected');
+                
+                // 해당 시군구 도서관들만 필터링
+                const districtLibraries = sidoLibraries.filter(lib => 
+                    lib.pblibRoadNmAddr && lib.pblibRoadNmAddr.split(' ')[1] === district
+                );
+                
+                displayLibraries(districtLibraries);
+                updateStatistics(districtLibraries);
+                updateRegionLabel(`${cityDisplayName} ${district} 도서관`);
+                
+                // 지도 이동
+                if (districtLibraries.length > 0) {
+                    const bounds = new naver.maps.LatLngBounds();
+                    districtLibraries.forEach(lib => {
+                        const lat = parseFloat(lib.lat);
+                        const lon = parseFloat(lib.lot);
+                        if (!isNaN(lat) && !isNaN(lon)) {
+                            bounds.extend(new naver.maps.LatLng(lat, lon));
+                        }
+                    });
+                    map.fitBounds(bounds);
+                }
+                
+                // 모바일에서 사이드바 자동 축소
+                collapseSidebarOnMobile();
+                
+                // 300ms 후 모달 닫기
+                setTimeout(() => {
+                    closeMobileDistrictModal();
+                }, 300);
+            });
+            
+            districtList.appendChild(btn);
+        });
+    
+    // 전체 버튼 이벤트
+    allDistrictsBtn.onclick = () => {
+        // 모든 버튼 선택 해제
+        document.querySelectorAll('.mobile-district-btn').forEach(b => b.classList.remove('selected'));
+        allDistrictsBtn.classList.add('selected');
+        
+        // 해당 시도의 모든 도서관 표시
+        displayLibraries(sidoLibraries);
+        updateStatistics(sidoLibraries);
+        updateRegionLabel(`${cityDisplayName} 도서관`);
+        
+        // 지도 이동
+        if (sidoLibraries.length > 0) {
+            const bounds = new naver.maps.LatLngBounds();
+            sidoLibraries.forEach(lib => {
+                const lat = parseFloat(lib.lat);
+                const lon = parseFloat(lib.lot);
+                if (!isNaN(lat) && !isNaN(lon)) {
+                    bounds.extend(new naver.maps.LatLng(lat, lon));
+                }
+            });
+            map.fitBounds(bounds);
+        }
+        
+        // 모바일에서 사이드바 자동 축소
+        collapseSidebarOnMobile();
+        
+        // 300ms 후 모달 닫기
+        setTimeout(() => {
+            closeMobileDistrictModal();
+        }, 300);
+    };
+    
+    // 모달 표시
+    modal.classList.remove('hidden');
+    
+    // body 스크롤 방지
+    document.body.style.overflow = 'hidden';
+    
+    console.log(`모바일 시군구 모달 오픈: ${cityDisplayName}`);
+}
+
+// 모바일 시군구 선택 모달 닫기
+function closeMobileDistrictModal() {
+    const modal = document.getElementById('mobile-district-modal');
+    if (modal) {
+        modal.classList.add('hidden');
+        
+        // body 스크롤 복원
+        document.body.style.overflow = '';
+        
+        console.log('모바일 시군구 모달 닫힘');
     }
 }
 
@@ -2045,6 +2297,73 @@ window.addEventListener('DOMContentLoaded', () => {
         addHeaderClickToggle();
         console.log('Header click toggle re-initialized in DOMContentLoaded');
     }, 200);
+    
+    // "뒤로" 버튼 이벤트 리스너 추가
+    const backButton = document.getElementById('back-to-cities');
+    if (backButton) {
+        backButton.addEventListener('click', () => {
+            console.log('뒤로 버튼 클릭됨 - 시도 선택으로 돌아감');
+            backToCitySelection();
+        });
+        console.log('뒤로 버튼 이벤트 리스너 추가 완료');
+    } else {
+        console.warn('뒤로 버튼을 찾을 수 없습니다');
+    }
+    
+    // 모바일 모달 닫기 버튼 이벤트 리스너
+    const mobileModalClose = document.getElementById('mobile-modal-close');
+    if (mobileModalClose) {
+        mobileModalClose.addEventListener('click', () => {
+            closeMobileDistrictModal();
+        });
+    }
+    
+    // 모바일 모달 배경 클릭 시 닫기
+    const mobileModalBackdrop = document.querySelector('.mobile-modal-backdrop');
+    if (mobileModalBackdrop) {
+        mobileModalBackdrop.addEventListener('click', () => {
+            closeMobileDistrictModal();
+        });
+    }
+    
+    // 모바일 모달 드래그 스와이프 닫기 기능
+    const mobileModal = document.getElementById('mobile-district-modal');
+    const mobileModalContent = document.querySelector('.mobile-modal-content');
+    if (mobileModal && mobileModalContent) {
+        let startY = 0;
+        let currentY = 0;
+        let isDragging = false;
+        
+        mobileModalContent.addEventListener('touchstart', (e) => {
+            startY = e.touches[0].clientY;
+            isDragging = true;
+        }, { passive: true });
+        
+        mobileModalContent.addEventListener('touchmove', (e) => {
+            if (!isDragging) return;
+            currentY = e.touches[0].clientY;
+            const deltaY = currentY - startY;
+            
+            if (deltaY > 0) {
+                mobileModalContent.style.transform = `translateY(${Math.min(deltaY, 100)}px)`;
+            }
+        }, { passive: true });
+        
+        mobileModalContent.addEventListener('touchend', () => {
+            if (!isDragging) return;
+            isDragging = false;
+            
+            const deltaY = currentY - startY;
+            
+            if (deltaY > 50) {
+                // 50px 이상 드래그하면 모달 닫기
+                closeMobileDistrictModal();
+            } else {
+                // 원래 위치로 복원
+                mobileModalContent.style.transform = 'translateY(0)';
+            }
+        }, { passive: true });
+    }
     
     const cityLabel = document.querySelector('.city-select-label');
     const cityButtonsContainer = document.getElementById('city-buttons');
