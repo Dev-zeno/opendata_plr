@@ -297,6 +297,7 @@ function initMobileDragFeature() {
     function handleStart(e) {
         console.log('드래그 시작 이벤트:', e.type, e);
         
+        // 터치와 마우스 이벤트 모두 처리
         const touch = e.touches ? e.touches[0] : e;
         
         if (!touch) {
@@ -317,12 +318,18 @@ function initMobileDragFeature() {
         console.log('드래그 시작:', {
             startY: startY,
             startTop: startTop,
-            currentTop: currentTop
+            currentTop: currentTop,
+            touchType: e.type
         });
         
-        // 이벤트 전파 방지
+        // 이벤트 전파 방지 (더 강력하게)
         e.preventDefault();
         e.stopPropagation();
+        
+        // iOS Safari에서 추가 처리
+        if (e.touches) {
+            e.stopImmediatePropagation();
+        }
     }
     
     // 터치 이동
@@ -350,9 +357,14 @@ function initMobileDragFeature() {
         
         updateSidebarPosition(newTop);
         
-        // 기본 스크롤 동작 방지
+        // 더 강력한 스크롤 방지
         e.preventDefault();
         e.stopPropagation();
+        
+        // iOS Safari에서 추가 처리
+        if (e.touches) {
+            e.stopImmediatePropagation();
+        }
     }
     
     // 터치 종료
@@ -392,27 +404,96 @@ function initMobileDragFeature() {
         }
         
         snapToPosition(targetState);
+        
+        // 이벤트 전파 방지
         e.preventDefault();
+        
+        console.log('드래그 종료:', {
+            finalState: targetState,
+            velocity: velocity,
+            currentPosition: currentPosition
+        });
     }
     
     // 이벤트 리스너 등록 (터치와 마우스 모두 지원)
     // 모바일에서 더 안정적인 터치 이벤트 처리
-    dragHandle.addEventListener('touchstart', handleStart, { passive: false, capture: true });
-    dragHandle.addEventListener('touchmove', handleMove, { passive: false, capture: true });
-    dragHandle.addEventListener('touchend', handleEnd, { passive: false, capture: true });
     
-    // 터치 취소 이벤트도 처리
-    dragHandle.addEventListener('touchcancel', handleEnd, { passive: false });
+    // 드래그 핸들에 터치 이벤트 등록
+    dragHandle.addEventListener('touchstart', handleStart, { 
+        passive: false, 
+        capture: true 
+    });
+    dragHandle.addEventListener('touchmove', handleMove, { 
+        passive: false, 
+        capture: true 
+    });
+    dragHandle.addEventListener('touchend', handleEnd, { 
+        passive: false, 
+        capture: true 
+    });
+    dragHandle.addEventListener('touchcancel', handleEnd, { 
+        passive: false, 
+        capture: true 
+    });
+    
+    // 사이드바 전체에도 터치 이벤트 등록 (드래그 영역 확장)
+    sidebar.addEventListener('touchstart', function(e) {
+        // 사이드바 상단 영역 (100px)에서만 드래그 허용
+        const rect = sidebar.getBoundingClientRect();
+        const touchY = e.touches[0].clientY;
+        const relativeY = touchY - rect.top;
+        
+        if (relativeY <= 100) {
+            handleStart(e);
+        }
+    }, { passive: false, capture: true });
+    
+    sidebar.addEventListener('touchmove', function(e) {
+        if (isDragging) {
+            handleMove(e);
+        }
+    }, { passive: false, capture: true });
+    
+    sidebar.addEventListener('touchend', function(e) {
+        if (isDragging) {
+            handleEnd(e);
+        }
+    }, { passive: false, capture: true });
     
     // 마우스 이벤트도 지원 (데스크톱 테스트용)
     dragHandle.addEventListener('mousedown', handleStart);
     document.addEventListener('mousemove', handleMove);
     document.addEventListener('mouseup', handleEnd);
     
-    // iOS Safari 호환성을 위한 추가 처리
+    // iOS Safari 호환성을 위한 추가 처리 (강화됨)
     dragHandle.style.touchAction = 'pan-y';
     dragHandle.style.webkitTouchCallout = 'none';
     dragHandle.style.webkitUserSelect = 'none';
+    dragHandle.style.webkitTapHighlightColor = 'transparent';
+    dragHandle.style.userSelect = 'none';
+    dragHandle.style.msUserSelect = 'none';
+    dragHandle.style.mozUserSelect = 'none';
+    
+    // 사이드바에도 동일한 속성 적용
+    sidebar.style.touchAction = 'pan-y';
+    sidebar.style.webkitOverflowScrolling = 'touch';
+    sidebar.style.webkitTransform = 'translate3d(0,0,0)'; // 하드웨어 가속 활성화
+    
+    // 시각적 피드백을 위한 추가 스타일
+    dragHandle.style.cursor = 'grab';
+    dragHandle.style.willChange = 'background-color';
+    
+    // 드래그 중 커서 변경
+    const originalCursor = dragHandle.style.cursor;
+    
+    // 드래그 시작 시 커서 변경 이벤트
+    dragHandle.addEventListener('touchstart', function() {
+        dragHandle.style.cursor = 'grabbing';
+    }, { passive: true });
+    
+    dragHandle.addEventListener('touchend', function() {
+        dragHandle.style.cursor = originalCursor;
+    }, { passive: true });
     
     // 디버깅을 위한 콘솔 로그 추가
     console.log('모바일 드래그 기능 초기화 완료');
@@ -424,6 +505,70 @@ function initMobileDragFeature() {
     snapToPosition('collapsed', false);
 }
 
+// 플로팅 버튼 초기화 함수
+function initFloatingButtons() {
+    const floatingButtons = document.querySelectorAll('.floating-btn');
+    
+    floatingButtons.forEach((button, index) => {
+        button.addEventListener('click', function() {
+            const title = this.getAttribute('title');
+            console.log('플로팅 버튼 클릭:', title);
+            
+            switch(title) {
+                case '위치':
+                    // 사용자 위치 요청 기능
+                    if (navigator.geolocation) {
+                        navigator.geolocation.getCurrentPosition(function(position) {
+                            const lat = position.coords.latitude;
+                            const lng = position.coords.longitude;
+                            
+                            if (window.map) {
+                                map.setCenter(new naver.maps.LatLng(lat, lng));
+                                map.setZoom(15);
+                                
+                                // 사용자 위치 마커 추가
+                                new naver.maps.Marker({
+                                    position: new naver.maps.LatLng(lat, lng),
+                                    map: map,
+                                    title: '내 위치',
+                                    icon: {
+                                        content: '<div style="background: #ff4444; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>',
+                                        anchor: new naver.maps.Point(6, 6)
+                                    }
+                                });
+                                
+                                console.log('사용자 위치로 이동:', lat, lng);
+                            }
+                        }, function(error) {
+                            console.error('위치 정보를 가져올 수 없습니다:', error);
+                            alert('위치 정보를 가져올 수 없습니다. 브라우저에서 위치 권한을 허용해주세요.');
+                        });
+                    } else {
+                        alert('이 브라우저는 위치 서비스를 지원하지 않습니다.');
+                    }
+                    break;
+                    
+                case '즐겨찾기':
+                    // 즐겨찾기 기능 (추후 구현)
+                    console.log('즐겨찾기 기능 - 추후 구현 예정');
+                    alert('즐겨찾기 기능은 추후 추가될 예정입니다.');
+                    break;
+                    
+                case '레이어':
+                    // 레이어 토글 기능 (추후 구현)
+                    console.log('레이어 기능 - 추후 구현 예정');
+                    alert('레이어 기능은 추후 추가될 예정입니다.');
+                    break;
+                    
+                default:
+                    console.log('알 수 없는 버튼:', title);
+            }
+        });
+    });
+    
+    console.log('플로팅 버튼 초기화 완료:', floatingButtons.length, '개 버튼');
+}
+
 // Mobile interaction initialization for responsive design
 function initMobileInteractions() {
     const sidebar = document.getElementById('sidebar');
@@ -431,6 +576,9 @@ function initMobileInteractions() {
     
     // 모바일 드래그 기능 초기화
     initMobileDragFeature();
+    
+    // 플로팅 버튼 초기화
+    initFloatingButtons();
     
     // Mobile toggle button functionality - restored
     if (mobileToggle) {
@@ -1738,11 +1886,9 @@ async function initialize() {
             if (window.innerWidth > 768) {
                 initDesktopSidebar();
                 initializeSidebarForScreenSize();
-            } else {
-                addHeaderClickToggle();
-                initMobileDragFeature();
             }
-            console.log('추가 초기화 작업 완료');
+            // 모바일 초기화는 이미 완료됨, 헤더 클릭 토글은 DOMContentLoaded에서 처리
+            console.log('추가 초기화 작업 완료 - 중복 방지');
         }, 100);
         
     } catch (error) {
@@ -1839,12 +1985,8 @@ initialize();
 window.addEventListener('DOMContentLoaded', () => {
     console.log('DOMContentLoaded event fired');
     
-    // PC 버전 사이드바 초기화
-    initDesktopSidebar();
-    initializeSidebarForScreenSize();
-    
-    // 모바일 인터렉션 초기화
-    initMobileInteractions();
+    // 플로팅 버튼 초기화 (전체 화면에서 동작)
+    initFloatingButtons();
     
     // 헤더 클릭 토글 기능 다시 초기화 (확실히 동작하도록)
     setTimeout(() => {
