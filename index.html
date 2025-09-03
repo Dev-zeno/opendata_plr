@@ -166,15 +166,27 @@
         </div>
     </div>
     
-    <!-- 메인 스크립트 동기 로드 (모바일 기능 정상 동작을 위해) -->
-    <script src="script.js"></script>
-    
+    <!-- 스크립트를 비동기로 로드하여 렌더링 차단 방지 -->
     <script>
-        // Google Analytics 설정
+        // 주요 스크립트 비동기 로드
+        function loadScript(src, callback) {
+            const script = document.createElement('script');
+            script.src = src;
+            script.async = true;
+            if (callback) script.onload = callback;
+            document.head.appendChild(script);
+        }
+        
+        // Google Analytics 덕더링
         window.dataLayer = window.dataLayer || [];
         function gtag(){dataLayer.push(arguments);}
         gtag('js', new Date());
         gtag('config', 'G-930VGD9QPS');
+        
+        // 도큐먼트 준비 완료 후 메인 스크립트 로드
+        document.addEventListener('DOMContentLoaded', function() {
+            loadScript('script.js');
+        });
     </script>
 </body>
 <!-- Google Tag Manager (noscript) -->
