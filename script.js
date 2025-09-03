@@ -4,43 +4,88 @@ let allLibraries = [];
 let markers = [];
 let seatMapData = {};
 
-// 간단하고 안정적인 지도 초기화 함수
+// Vercel HTTPS 환경에서 안정적인 지도 초기화 함수
 function initializeMap() {
-    console.log('지도 초기화 시작...');
+    console.log('Vercel HTTPS 지도 초기화 시작...');
     
     // DOM 요소 확인
     const mapContainer = document.getElementById('map');
     if (!mapContainer) {
-        console.error('지도 컨테이너를 찾을 수 없습니다');
+        console.error('Vercel HTTPS 지도 컨테이너를 찾을 수 없습니다');
         return false;
     }
     
     // 네이버 지도 API 확인
     if (typeof naver === 'undefined' || !naver.maps) {
-        console.error('네이버 지도 API가 로드되지 않았습니다');
+        console.error('Vercel HTTPS 네이버 지도 API가 로드되지 않았습니다');
+        
+        // HTTPS 환경에서 API 재로드 시도
+        if (typeof window !== 'undefined') {
+            console.log('HTTPS 환경에서 네이버 지도 API 재로드 시도...');
+            
+            // 기존 스크립트 제거
+            const existingScript = document.querySelector('script[src*="oapi.map.naver.com"]');
+            if (existingScript) {
+                existingScript.remove();
+            }
+            
+            // HTTPS 스크립트 동적 로드
+            const script = document.createElement('script');
+            script.type = 'text/javascript';
+            script.src = 'https://oapi.map.naver.com/openapi/v3/maps.js?ncpClientId=hgte1ya8vs';
+            script.async = true;
+            script.onload = function() {
+                console.log('HTTPS 네이버 지도 API 로드 성공');
+                // 로드 완료 후 다시 초기화 시도
+                setTimeout(() => {
+                    if (typeof naver !== 'undefined' && naver.maps) {
+                        initializeMap();
+                    }
+                }, 500);
+            };
+            script.onerror = function() {
+                console.error('HTTPS 네이버 지도 API 로드 실패');
+            };
+            document.head.appendChild(script);
+        }
+        
         return false;
     }
     
     try {
-        // 간단한 지도 생성
+        // HTTPS 환경에서 지도 생성
         map = new naver.maps.Map('map', {
             center: new naver.maps.LatLng(37.5665, 126.9780),
-            zoom: 10
+            zoom: 10,
+            // HTTPS 호환 옵션 추가
+            scaleControl: true,
+            logoControl: true,
+            mapDataControl: false,
+            zoomControl: true,
+            zoomControlOptions: {
+                position: naver.maps.Position.TOP_RIGHT
+            }
         });
         
-        // 지도 크기 문제 해결을 위한 강제 리사이즈
+        // HTTPS 지도 크기 문제 해결을 위한 강제 리사이즈
         setTimeout(() => {
             if (map) {
                 // 지도 컨테이너 크기 재계산
                 naver.maps.Event.trigger(map, 'resize');
-                console.log('지도 리사이즈 이벤트 트리거');
+                console.log('HTTPS 지도 리사이즈 이벤트 트리거');
             }
         }, 200);
         
-        console.log('네이버 지도 초기화 성공');
+        console.log('Vercel HTTPS 네이버 지도 초기화 성공');
         return true;
     } catch (error) {
-        console.error('지도 생성 중 오류:', error);
+        console.error('HTTPS 지도 생성 중 오류:', error);
+        
+        // HTTPS 오류 시 폴백
+        if (error.message && error.message.includes('https')) {
+            console.log('HTTPS 관련 오류로 폴백 시도...');
+        }
+        
         return false;
     }
 }
@@ -1346,35 +1391,41 @@ function backToCitySelection() {
     }
 }
 
-// 모바일 시군구 선택 모달 열기
+// Vercel HTTPS 환경에서 Safari 호환성을 위한 모바일 시군구 선택 모달 열기
 function openMobileDistrictModal(selectedSido, libraries) {
     if (!isMobileDevice()) {
         console.log('모바일 환경이 아닙니다');
         return;
     }
     
-    console.log('Safari 호환 모바일 모달 오픈 시도:', selectedSido);
+    console.log('Vercel Safari 호환 모바일 모달 오픈 시도:', selectedSido);
     
     const modal = document.getElementById('mobile-district-modal');
     const currentCityName = document.getElementById('mobile-current-city-name');
     const allDistrictsBtn = document.getElementById('mobile-all-districts');
     const districtList = document.getElementById('mobile-district-list');
     
-    // Safari를 위한 더 엄격한 null 체크
+    // Vercel 배포 환경에서 Safari를 위한 더 엄격한 null 체크
     if (!modal) {
-        console.error('모바일 모달 요소를 찾을 수 없습니다: mobile-district-modal');
+        console.error('Vercel 모바일 모달 요소를 찾을 수 없습니다: mobile-district-modal');
+        // DOM 준비 대기 후 재시도
+        setTimeout(() => {
+            if (document.getElementById('mobile-district-modal')) {
+                openMobileDistrictModal(selectedSido, libraries);
+            }
+        }, 500);
         return;
     }
     if (!currentCityName) {
-        console.error('모바일 모달 요소를 찾을 수 없습니다: mobile-current-city-name');
+        console.error('Vercel 모바일 모달 요소를 찾을 수 없습니다: mobile-current-city-name');
         return;
     }
     if (!allDistrictsBtn) {
-        console.error('모바일 모달 요소를 찾을 수 없습니다: mobile-all-districts');
+        console.error('Vercel 모바일 모달 요소를 찾을 수 없습니다: mobile-all-districts');
         return;
     }
     if (!districtList) {
-        console.error('모바일 모달 요소를 찾을 수 없습니다: mobile-district-list');
+        console.error('Vercel 모바일 모달 요소를 찾을 수 없습니다: mobile-district-list');
         return;
     }
     
@@ -1387,12 +1438,23 @@ function openMobileDistrictModal(selectedSido, libraries) {
     };
     const cityDisplayName = abbrMap[selectedSido] || selectedSido.replace(/(특별시|광역시|특별자치시|특별자치도|도)$/,'');
     
-    // Safari를 위한 안전한 textContent 설정
+    // Vercel Safari를 위한 안전한 textContent 설정
     try {
-        currentCityName.textContent = cityDisplayName;
+        if (currentCityName.textContent !== undefined) {
+            currentCityName.textContent = cityDisplayName;
+        } else if (currentCityName.innerText !== undefined) {
+            currentCityName.innerText = cityDisplayName;
+        } else {
+            currentCityName.innerHTML = cityDisplayName;
+        }
     } catch (e) {
-        console.error('Safari textContent 설정 오류:', e);
-        currentCityName.innerText = cityDisplayName; // Safari fallback
+        console.error('Vercel Safari textContent 설정 오류:', e);
+        // 폴백 방법
+        try {
+            currentCityName.appendChild(document.createTextNode(cityDisplayName));
+        } catch (e2) {
+            console.error('Vercel Safari textNode 생성 오류:', e2);
+        }
     }
     
     // 해당 시도의 도서관들만 필터링
@@ -1400,18 +1462,34 @@ function openMobileDistrictModal(selectedSido, libraries) {
         lib.pblibRoadNmAddr && lib.pblibRoadNmAddr.startsWith(selectedSido)
     );
     
-    console.log('필터링된 도서관 수:', sidoLibraries.length);
+    console.log('Vercel 필터링된 도서관 수:', sidoLibraries.length);
     
-    // 전체 버튼 설정 - Safari를 위한 안전한 innerHTML 설정
+    // 전체 버튼 설정 - Vercel Safari를 위한 안전한 innerHTML 설정
     try {
-        allDistrictsBtn.innerHTML = `전체 <span class="count">${sidoLibraries.length}</span>`;
+        const allButtonHTML = `전체 <span class="count">${sidoLibraries.length}</span>`;
+        if (allDistrictsBtn.innerHTML !== undefined) {
+            allDistrictsBtn.innerHTML = allButtonHTML;
+        } else if (allDistrictsBtn.textContent !== undefined) {
+            allDistrictsBtn.textContent = `전체 (${sidoLibraries.length})`;
+        } else {
+            allDistrictsBtn.innerText = `전체 (${sidoLibraries.length})`;
+        }
     } catch (e) {
-        console.error('Safari innerHTML 설정 오류:', e);
-        allDistrictsBtn.textContent = `전체 (${sidoLibraries.length})`; // Safari fallback
+        console.error('Vercel Safari innerHTML 설정 오류:', e);
+        // 폴백
+        try {
+            allDistrictsBtn.textContent = `전체 (${sidoLibraries.length})`;
+        } catch (e2) {
+            console.error('Vercel Safari 폴백 오류:', e2);
+        }
     }
     
-    // Safari를 위한 클래스 설정
-    allDistrictsBtn.className = 'mobile-district-btn mobile-all-btn selected';
+    // Vercel Safari를 위한 클래스 설정 (className 사용)
+    try {
+        allDistrictsBtn.className = 'mobile-district-btn mobile-all-btn selected';
+    } catch (e) {
+        console.error('Vercel Safari className 설정 오류:', e);
+    }
     
     // 시군구별 도서관 개수 집계
     const districtCounts = new Map();
@@ -1427,24 +1505,55 @@ function openMobileDistrictModal(selectedSido, libraries) {
     
     console.log('시군구 개수:', districtCounts.size);
     
-    // 시군구 버튼들 생성 - Safari를 위한 안전한 방법
-    districtList.innerHTML = ''; // 기존 콘텐츠 제거
+    // 시군구 버튼들 생성 - Vercel Safari를 위한 안전한 방법
+    try {
+        districtList.innerHTML = ''; // 기존 콘텐츠 제거
+    } catch (e) {
+        console.error('Vercel Safari innerHTML 청소 오류:', e);
+        // 폴백: 수동 제거
+        while (districtList.firstChild) {
+            districtList.removeChild(districtList.firstChild);
+        }
+    }
     
     Array.from(districtCounts.entries())
         .sort(([a], [b]) => a.localeCompare(b, 'ko'))
         .forEach(([district, count]) => {
             const btn = document.createElement('button');
-            btn.className = 'mobile-district-btn';
             
-            // Safari를 위한 안전한 innerHTML 설정
+            // Vercel Safari를 위한 안전한 className 설정
             try {
-                btn.innerHTML = `${district} <span class="count">${count}</span>`;
+                btn.className = 'mobile-district-btn';
             } catch (e) {
-                console.error('Safari 버튼 innerHTML 오류:', e);
-                btn.textContent = `${district} (${count})`; // Safari fallback
+                console.error('Vercel Safari className 오류:', e);
+                btn.setAttribute('class', 'mobile-district-btn');
             }
             
-            btn.setAttribute('data-district', district);
+            // Vercel Safari를 위한 안전한 innerHTML 설정
+            try {
+                const buttonHTML = `${district} <span class="count">${count}</span>`;
+                if (btn.innerHTML !== undefined) {
+                    btn.innerHTML = buttonHTML;
+                } else {
+                    btn.textContent = `${district} (${count})`;
+                }
+            } catch (e) {
+                console.error('Vercel Safari 버튼 innerHTML 오류:', e);
+                try {
+                    btn.textContent = `${district} (${count})`;
+                } catch (e2) {
+                    // 마지막 폴백
+                    const textNode = document.createTextNode(`${district} (${count})`);
+                    btn.appendChild(textNode);
+                }
+            }
+            
+            // Vercel Safari를 위한 안전한 setAttribute
+            try {
+                btn.setAttribute('data-district', district);
+            } catch (e) {
+                console.error('Vercel Safari setAttribute 오류:', e);
+            }
             
             // Safari를 위한 이벤트 리스너 - 이벤트 위임 사용
             btn.addEventListener('click', function(e) {
@@ -1530,47 +1639,123 @@ function openMobileDistrictModal(selectedSido, libraries) {
     allDistrictsBtn.removeEventListener('click', handleAllButtonClick);
     allDistrictsBtn.addEventListener('click', handleAllButtonClick, { passive: false });
     
-    // Safari를 위한 모달 표시 - 단계별 실행
-    console.log('모달 표시 시작');
+    // Vercel Safari를 위한 모달 표시 - 단계별 안전 실행
+    console.log('Vercel 모달 표시 시작');
     
-    // 1. body 스크롤 방지
-    document.body.style.overflow = 'hidden';
-    document.body.style.position = 'fixed'; // Safari 추가 고정
-    document.body.style.width = '100%';
+    // 1. body 스크롤 방지 - Vercel Safari 전용
+    try {
+        const bodyStyle = document.body.style;
+        bodyStyle.overflow = 'hidden';
+        bodyStyle.position = 'fixed';
+        bodyStyle.width = '100%';
+        bodyStyle.height = '100%';
+        bodyStyle.webkitOverflowScrolling = 'touch';
+    } catch (e) {
+        console.error('Vercel Safari body 스타일 설정 오류:', e);
+    }
     
-    // 2. 모달 hidden 클래스 제거
-    modal.classList.remove('hidden');
+    // 2. 모달 hidden 클래스 제거 - Vercel Safari 방식
+    try {
+        if (modal.classList) {
+            modal.classList.remove('hidden');
+        } else {
+            // 폴백
+            const currentClass = modal.className;
+            modal.className = currentClass.replace(/\bhidden\b/g, '').trim();
+        }
+    } catch (e) {
+        console.error('Vercel Safari classList 오류:', e);
+        // 최종 폴백
+        modal.style.display = 'flex';
+    }
     
-    // 3. Safari를 위한 강제 재렌더링
-    modal.offsetHeight; // force reflow
+    // 3. Vercel Safari를 위한 강제 재렌더링 및 애니메이션 트리거
+    try {
+        modal.offsetHeight; // force reflow
+        modal.style.visibility = 'visible';
+        modal.style.opacity = '1';
+        modal.style.pointerEvents = 'all';
+        
+        // 모달 콘텐츠 애니메이션
+        setTimeout(() => {
+            const modalContent = modal.querySelector('.mobile-modal-content');
+            if (modalContent) {
+                modalContent.style.webkitTransform = 'translate3d(0, 0, 0)';
+                modalContent.style.transform = 'translate3d(0, 0, 0)';
+            }
+        }, 50);
+        
+    } catch (e) {
+        console.error('Vercel Safari 애니메이션 오류:', e);
+    }
     
-    console.log(`Safari 모바일 시군구 모달 오픈 완료: ${cityDisplayName}`);
+    console.log(`Vercel Safari 모바일 시군구 모달 오픈 완료: ${cityDisplayName}`);
 }
 
-// 모바일 시군구 선택 모달 닫기 - Safari 호환 버전
+// Vercel HTTPS Safari 환경에서 모바일 시군구 선택 모달 닫기
 function closeMobileDistrictModal() {
-    console.log('Safari 모바일 모달 닫기 시도');
+    console.log('Vercel Safari 모바일 모달 닫기 시도');
     
     const modal = document.getElementById('mobile-district-modal');
     if (!modal) {
-        console.error('모바일 모달 요소를 찾을 수 없습니다');
+        console.error('Vercel 모바일 모달 요소를 찾을 수 없습니다');
         return;
     }
     
-    // Safari를 위한 단계적 닫기
-    modal.classList.add('hidden');
+    // Vercel Safari를 위한 단계적 모달 닫기
+    try {
+        // 1. 애니메이션과 함께 닫기
+        const modalContent = modal.querySelector('.mobile-modal-content');
+        if (modalContent) {
+            modalContent.style.webkitTransform = 'translate3d(0, 100%, 0)';
+            modalContent.style.transform = 'translate3d(0, 100%, 0)';
+        }
+        
+        // 2. 모달 비시블 처리
+        setTimeout(() => {
+            try {
+                modal.style.opacity = '0';
+                modal.style.visibility = 'hidden';
+                modal.style.pointerEvents = 'none';
+                
+                // 3. hidden 클래스 추가
+                if (modal.classList) {
+                    modal.classList.add('hidden');
+                } else {
+                    modal.className += ' hidden';
+                }
+                
+            } catch (e2) {
+                console.error('Vercel Safari 모달 비시블 오류:', e2);
+                modal.style.display = 'none';
+            }
+        }, 150);
+        
+    } catch (e) {
+        console.error('Vercel Safari 모달 애니메이션 오류:', e);
+        // 폴백: 직접 닫기
+        modal.classList.add('hidden');
+    }
     
-    // body 스크롤 복원 - Safari 전용
+    // body 스크롤 복원 - Vercel Safari 전용
     setTimeout(() => {
-        document.body.style.overflow = '';
-        document.body.style.position = '';
-        document.body.style.width = '';
+        try {
+            const bodyStyle = document.body.style;
+            bodyStyle.overflow = '';
+            bodyStyle.position = '';
+            bodyStyle.width = '';
+            bodyStyle.height = '';
+            bodyStyle.webkitOverflowScrolling = '';
+            
+            // Vercel Safari를 위한 강제 재렌더링
+            document.body.offsetHeight; // force reflow
+            
+        } catch (e) {
+            console.error('Vercel Safari body 복원 오류:', e);
+        }
         
-        // Safari를 위한 강제 재렌더링
-        document.body.offsetHeight; // force reflow
-        
-        console.log('Safari 모바일 모달 닫기 완료');
-    }, 100); // Safari를 위한 지연
+        console.log('Vercel Safari 모바일 모달 닫기 완료');
+    }, 200);
 }
 
 // Deprecated select version kept for reference (not used)
