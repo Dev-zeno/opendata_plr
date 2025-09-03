@@ -1082,7 +1082,7 @@ function generateCityButtons(libraries) {
                 showDistrictButtons(sido, libraries);
             });
             cityButtonsContainer.appendChild(btn);
-        }
+        } 
         
         // Mobile city button
         if (mobileCityButtonsContainer) {
