@@ -215,6 +215,97 @@ async function refreshDataInBackground() {
     }
 }
 
+// 지도 상태 확인 및 안전한 지도 이동 함수
+function safeMapOperation(operation, libraries = null, description = '') {
+    console.log(`지도 작업 시도: ${description}`);
+    
+    // 네이버 지도 API 로드 확인
+    if (typeof naver === 'undefined' || !naver.maps) {
+        console.error('네이버 지도 API가 로드되지 않았습니다');
+        return false;
+    }
+    
+    // 전역 map 변수 확인 (window.map 대신 전역 map 사용)
+    if (!map) {
+        console.error('지도 객체가 초기화되지 않았습니다. 지도 초기화를 대기 중입니다.');
+        // 지도 초기화를 다시 시도
+        setTimeout(() => {
+            if (!map) {
+                console.log('지도 재초기화 시도...');
+                initializeMap();
+            }
+        }, 1000);
+        return false;
+    }
+    
+    // 지도 컨테이너 확인
+    const mapContainer = document.getElementById('map');
+    if (!mapContainer) {
+        console.error('지도 컨테이너를 찾을 수 없습니다');
+        return false;
+    }
+    
+    try {
+        // 라이브러리 데이터가 있고 유효한 좌표가 있는지 확인
+        if (libraries && libraries.length > 0) {
+            const validLibraries = libraries.filter(lib => {
+                const lat = parseFloat(lib.lat);
+                const lon = parseFloat(lib.lot);
+                return !isNaN(lat) && !isNaN(lon) && lat !== 0 && lon !== 0;
+            });
+            
+            if (validLibraries.length === 0) {
+                console.warn('유효한 좌표를 가진 도서관이 없습니다');
+                return false;
+            }
+            
+            console.log(`유효한 도서관 좌표 ${validLibraries.length}개 발견`);
+            
+            // Bounds 생성 및 지도 이동
+            const bounds = new naver.maps.LatLngBounds();
+            validLibraries.forEach(lib => {
+                const lat = parseFloat(lib.lat);
+                const lon = parseFloat(lib.lot);
+                bounds.extend(new naver.maps.LatLng(lat, lon));
+            });
+            
+            // fitBounds 실행 - 전역 map 변수 사용
+            map.fitBounds(bounds);
+            
+            // 지도 리사이즈 강제 실행 (Safari 호환)
+            setTimeout(() => {
+                if (map) {
+                    naver.maps.Event.trigger(map, 'resize');
+                    console.log('지도 리사이즈 트리거 완료');
+                }
+            }, 100);
+            
+            console.log(`지도 이동 성공: ${description}`);
+            return true;
+        } else {
+            // 일반적인 지도 작업 실행
+            if (typeof operation === 'function') {
+                operation();
+                return true;
+            }
+        }
+    } catch (error) {
+        console.error(`지도 작업 실패 (${description}):`, error);
+        
+        // 오류 발생 시 지도 재초기화 시도
+        if (error.message && error.message.includes('map')) {
+            console.log('지도 오류로 인한 재초기화 시도...');
+            setTimeout(() => {
+                initializeMap();
+            }, 1000);
+        }
+        
+        return false;
+    }
+    
+    return false;
+}
+
 // 모바일 기기 감지 함수
 function isMobileDevice() {
     return window.innerWidth <= 768 || 
@@ -1160,17 +1251,10 @@ function showDistrictButtons(selectedSido, libraries) {
         updateStatistics(sidoLibraries);
         updateRegionLabel(`${cityDisplayName} 도서관`);
         
-        // 지도 이동
-        if (sidoLibraries.length > 0) {
-            const bounds = new naver.maps.LatLngBounds();
-            sidoLibraries.forEach(lib => {
-                const lat = parseFloat(lib.lat);
-                const lon = parseFloat(lib.lot);
-                if (!isNaN(lat) && !isNaN(lon)) {
-                    bounds.extend(new naver.maps.LatLng(lat, lon));
-                }
-            });
-            map.fitBounds(bounds);
+        // 안전한 지도 이동 사용
+        const mapMoveSuccess = safeMapOperation(null, sidoLibraries, `${cityDisplayName} 지역으로 지도 이동`);
+        if (!mapMoveSuccess) {
+            console.warn(`PC 버전 지도 이동 실패: ${cityDisplayName}`);
         }
     });
     districtButtons.appendChild(allBtn);
@@ -1198,17 +1282,10 @@ function showDistrictButtons(selectedSido, libraries) {
                 updateStatistics(districtLibraries);
                 updateRegionLabel(`${cityDisplayName} ${district} 도서관`);
                 
-                // 지도 이동
-                if (districtLibraries.length > 0) {
-                    const bounds = new naver.maps.LatLngBounds();
-                    districtLibraries.forEach(lib => {
-                        const lat = parseFloat(lib.lat);
-                        const lon = parseFloat(lib.lot);
-                        if (!isNaN(lat) && !isNaN(lon)) {
-                            bounds.extend(new naver.maps.LatLng(lat, lon));
-                        }
-                    });
-                    map.fitBounds(bounds);
+                // 안전한 지도 이동 사용
+                const mapMoveSuccess = safeMapOperation(null, districtLibraries, `PC ${cityDisplayName} ${district} 지역으로 지도 이동`);
+                if (!mapMoveSuccess) {
+                    console.warn(`PC 버전 지도 이동 실패: ${district}`);
                 }
             });
             
@@ -1261,17 +1338,10 @@ function backToCitySelection() {
         updateStatistics(allLibraries);
         updateRegionLabel('전국 도서관');
         
-        // 지도를 전국 범위로 초기화
-        if (allLibraries.length > 0) {
-            const bounds = new naver.maps.LatLngBounds();
-            allLibraries.forEach(lib => {
-                const lat = parseFloat(lib.lat);
-                const lon = parseFloat(lib.lot);
-                if (!isNaN(lat) && !isNaN(lon)) {
-                    bounds.extend(new naver.maps.LatLng(lat, lon));
-                }
-            });
-            map.fitBounds(bounds);
+        // 지도를 전국 범위로 안전하게 초기화
+        const mapMoveSuccess = safeMapOperation(null, allLibraries, '전국 범위로 지도 초기화');
+        if (!mapMoveSuccess) {
+            console.warn('전국 범위 지도 이동 실패');
         }
     }
 }
@@ -1283,13 +1353,28 @@ function openMobileDistrictModal(selectedSido, libraries) {
         return;
     }
     
+    console.log('Safari 호환 모바일 모달 오픈 시도:', selectedSido);
+    
     const modal = document.getElementById('mobile-district-modal');
     const currentCityName = document.getElementById('mobile-current-city-name');
     const allDistrictsBtn = document.getElementById('mobile-all-districts');
     const districtList = document.getElementById('mobile-district-list');
     
-    if (!modal || !currentCityName || !allDistrictsBtn || !districtList) {
-        console.error('모바일 모달 요소를 찾을 수 없습니다');
+    // Safari를 위한 더 엄격한 null 체크
+    if (!modal) {
+        console.error('모바일 모달 요소를 찾을 수 없습니다: mobile-district-modal');
+        return;
+    }
+    if (!currentCityName) {
+        console.error('모바일 모달 요소를 찾을 수 없습니다: mobile-current-city-name');
+        return;
+    }
+    if (!allDistrictsBtn) {
+        console.error('모바일 모달 요소를 찾을 수 없습니다: mobile-all-districts');
+        return;
+    }
+    if (!districtList) {
+        console.error('모바일 모달 요소를 찾을 수 없습니다: mobile-district-list');
         return;
     }
     
@@ -1301,16 +1386,32 @@ function openMobileDistrictModal(selectedSido, libraries) {
         '전북특별자치도':'전북','전라남도':'전남','경상북도':'경북','경상남도':'경남','제주특별자치도':'제주'
     };
     const cityDisplayName = abbrMap[selectedSido] || selectedSido.replace(/(특별시|광역시|특별자치시|특별자치도|도)$/,'');
-    currentCityName.textContent = cityDisplayName;
+    
+    // Safari를 위한 안전한 textContent 설정
+    try {
+        currentCityName.textContent = cityDisplayName;
+    } catch (e) {
+        console.error('Safari textContent 설정 오류:', e);
+        currentCityName.innerText = cityDisplayName; // Safari fallback
+    }
     
     // 해당 시도의 도서관들만 필터링
     const sidoLibraries = libraries.filter(lib => 
         lib.pblibRoadNmAddr && lib.pblibRoadNmAddr.startsWith(selectedSido)
     );
     
-    // 전체 버튼 설정
-    allDistrictsBtn.innerHTML = `전체 <span class="count">${sidoLibraries.length}</span>`;
-    allDistrictsBtn.classList.add('selected');
+    console.log('필터링된 도서관 수:', sidoLibraries.length);
+    
+    // 전체 버튼 설정 - Safari를 위한 안전한 innerHTML 설정
+    try {
+        allDistrictsBtn.innerHTML = `전체 <span class="count">${sidoLibraries.length}</span>`;
+    } catch (e) {
+        console.error('Safari innerHTML 설정 오류:', e);
+        allDistrictsBtn.textContent = `전체 (${sidoLibraries.length})`; // Safari fallback
+    }
+    
+    // Safari를 위한 클래스 설정
+    allDistrictsBtn.className = 'mobile-district-btn mobile-all-btn selected';
     
     // 시군구별 도서관 개수 집계
     const districtCounts = new Map();
@@ -1324,20 +1425,39 @@ function openMobileDistrictModal(selectedSido, libraries) {
         }
     });
     
-    // 시군구 버튼들 생성
-    districtList.innerHTML = '';
+    console.log('시군구 개수:', districtCounts.size);
+    
+    // 시군구 버튼들 생성 - Safari를 위한 안전한 방법
+    districtList.innerHTML = ''; // 기존 콘텐츠 제거
     
     Array.from(districtCounts.entries())
         .sort(([a], [b]) => a.localeCompare(b, 'ko'))
         .forEach(([district, count]) => {
             const btn = document.createElement('button');
             btn.className = 'mobile-district-btn';
-            btn.innerHTML = `${district} <span class="count">${count}</span>`;
+            
+            // Safari를 위한 안전한 innerHTML 설정
+            try {
+                btn.innerHTML = `${district} <span class="count">${count}</span>`;
+            } catch (e) {
+                console.error('Safari 버튼 innerHTML 오류:', e);
+                btn.textContent = `${district} (${count})`; // Safari fallback
+            }
+            
             btn.setAttribute('data-district', district);
             
-            btn.addEventListener('click', () => {
-                // 모든 버튼 선택 해제
-                document.querySelectorAll('.mobile-district-btn').forEach(b => b.classList.remove('selected'));
+            // Safari를 위한 이벤트 리스너 - 이벤트 위임 사용
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                console.log('Safari 시군구 버튼 클릭:', district);
+                
+                // 모든 버튼 선택 해제 - Safari를 위한 안전한 방법
+                const allButtons = document.querySelectorAll('.mobile-district-btn');
+                for (let i = 0; i < allButtons.length; i++) {
+                    allButtons[i].classList.remove('selected');
+                }
                 btn.classList.add('selected');
                 
                 // 해당 시군구 도서관들만 필터링
@@ -1345,39 +1465,45 @@ function openMobileDistrictModal(selectedSido, libraries) {
                     lib.pblibRoadNmAddr && lib.pblibRoadNmAddr.split(' ')[1] === district
                 );
                 
+                console.log(`선택된 시군구: ${district}, 도서관 수: ${districtLibraries.length}`);
+                
                 displayLibraries(districtLibraries);
                 updateStatistics(districtLibraries);
                 updateRegionLabel(`${cityDisplayName} ${district} 도서관`);
                 
-                // 지도 이동
-                if (districtLibraries.length > 0) {
-                    const bounds = new naver.maps.LatLngBounds();
-                    districtLibraries.forEach(lib => {
-                        const lat = parseFloat(lib.lat);
-                        const lon = parseFloat(lib.lot);
-                        if (!isNaN(lat) && !isNaN(lon)) {
-                            bounds.extend(new naver.maps.LatLng(lat, lon));
-                        }
-                    });
-                    map.fitBounds(bounds);
+                // 안전한 지도 이동 사용
+                console.log('모바일 시군구 버튼 - 지도 이동 시도 시작');
+                const mapMoveSuccess = safeMapOperation(null, districtLibraries, `${cityDisplayName} ${district} 지역으로 지도 이동`);
+                if (!mapMoveSuccess) {
+                    console.warn(`모바일 지도 이동 실패: ${district}`);
+                } else {
+                    console.log(`모바일 지도 이동 성공: ${district}`);
                 }
                 
                 // 모바일에서 사이드바 자동 축소
                 collapseSidebarOnMobile();
                 
-                // 300ms 후 모달 닫기
+                // Safari를 위한 지연 모달 닫기
                 setTimeout(() => {
                     closeMobileDistrictModal();
                 }, 300);
-            });
+            }, { passive: false }); // Safari를 위한 passive false
             
             districtList.appendChild(btn);
         });
     
-    // 전체 버튼 이벤트
-    allDistrictsBtn.onclick = () => {
+    // 전체 버튼 이벤트 - Safari 호환
+    const handleAllButtonClick = function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        console.log('Safari 전체 버튼 클릭');
+        
         // 모든 버튼 선택 해제
-        document.querySelectorAll('.mobile-district-btn').forEach(b => b.classList.remove('selected'));
+        const allButtons = document.querySelectorAll('.mobile-district-btn');
+        for (let i = 0; i < allButtons.length; i++) {
+            allButtons[i].classList.remove('selected');
+        }
         allDistrictsBtn.classList.add('selected');
         
         // 해당 시도의 모든 도서관 표시
@@ -1385,48 +1511,66 @@ function openMobileDistrictModal(selectedSido, libraries) {
         updateStatistics(sidoLibraries);
         updateRegionLabel(`${cityDisplayName} 도서관`);
         
-        // 지도 이동
-        if (sidoLibraries.length > 0) {
-            const bounds = new naver.maps.LatLngBounds();
-            sidoLibraries.forEach(lib => {
-                const lat = parseFloat(lib.lat);
-                const lon = parseFloat(lib.lot);
-                if (!isNaN(lat) && !isNaN(lon)) {
-                    bounds.extend(new naver.maps.LatLng(lat, lon));
-                }
-            });
-            map.fitBounds(bounds);
+        // 안전한 지도 이동 사용
+        const mapMoveSuccess = safeMapOperation(null, sidoLibraries, `${cityDisplayName} 전체 지역으로 지도 이동`);
+        if (!mapMoveSuccess) {
+            console.warn(`지도 이동 실패: ${cityDisplayName} 전체`);
         }
         
         // 모바일에서 사이드바 자동 축소
         collapseSidebarOnMobile();
         
-        // 300ms 후 모달 닫기
+        // Safari를 위한 지연 모달 닫기
         setTimeout(() => {
             closeMobileDistrictModal();
         }, 300);
     };
     
-    // 모달 표시
+    // 기존 이벤트 리스너 제거 후 새로 추가 (Safari 호환)
+    allDistrictsBtn.removeEventListener('click', handleAllButtonClick);
+    allDistrictsBtn.addEventListener('click', handleAllButtonClick, { passive: false });
+    
+    // Safari를 위한 모달 표시 - 단계별 실행
+    console.log('모달 표시 시작');
+    
+    // 1. body 스크롤 방지
+    document.body.style.overflow = 'hidden';
+    document.body.style.position = 'fixed'; // Safari 추가 고정
+    document.body.style.width = '100%';
+    
+    // 2. 모달 hidden 클래스 제거
     modal.classList.remove('hidden');
     
-    // body 스크롤 방지
-    document.body.style.overflow = 'hidden';
+    // 3. Safari를 위한 강제 재렌더링
+    modal.offsetHeight; // force reflow
     
-    console.log(`모바일 시군구 모달 오픈: ${cityDisplayName}`);
+    console.log(`Safari 모바일 시군구 모달 오픈 완료: ${cityDisplayName}`);
 }
 
-// 모바일 시군구 선택 모달 닫기
+// 모바일 시군구 선택 모달 닫기 - Safari 호환 버전
 function closeMobileDistrictModal() {
+    console.log('Safari 모바일 모달 닫기 시도');
+    
     const modal = document.getElementById('mobile-district-modal');
-    if (modal) {
-        modal.classList.add('hidden');
-        
-        // body 스크롤 복원
-        document.body.style.overflow = '';
-        
-        console.log('모바일 시군구 모달 닫힘');
+    if (!modal) {
+        console.error('모바일 모달 요소를 찾을 수 없습니다');
+        return;
     }
+    
+    // Safari를 위한 단계적 닫기
+    modal.classList.add('hidden');
+    
+    // body 스크롤 복원 - Safari 전용
+    setTimeout(() => {
+        document.body.style.overflow = '';
+        document.body.style.position = '';
+        document.body.style.width = '';
+        
+        // Safari를 위한 강제 재렌더링
+        document.body.offsetHeight; // force reflow
+        
+        console.log('Safari 모바일 모달 닫기 완료');
+    }, 100); // Safari를 위한 지연
 }
 
 // Deprecated select version kept for reference (not used)
@@ -2310,59 +2454,119 @@ window.addEventListener('DOMContentLoaded', () => {
         console.warn('뒤로 버튼을 찾을 수 없습니다');
     }
     
-    // 모바일 모달 닫기 버튼 이벤트 리스너
+    // 모바일 모달 닫기 버튼 이벤트 리스너 - Safari 호환
     const mobileModalClose = document.getElementById('mobile-modal-close');
     if (mobileModalClose) {
-        mobileModalClose.addEventListener('click', () => {
+        // Safari를 위한 이벤트 리스너 옵션
+        mobileModalClose.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('Safari 모바일 모달 X 버튼 클릭');
             closeMobileDistrictModal();
-        });
+        }, { passive: false, capture: true });
+        
+        // Safari를 위한 추가 터치 이벤트
+        mobileModalClose.addEventListener('touchend', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('Safari 모바일 모달 X 버튼 터치');
+            closeMobileDistrictModal();
+        }, { passive: false, capture: true });
+        
+        console.log('Safari 모바일 모달 닫기 버튼 이벤트 리스너 추가 완료');
+    } else {
+        console.warn('Safari 모바일 모달 닫기 버튼을 찾을 수 없습니다');
     }
     
-    // 모바일 모달 배경 클릭 시 닫기
+    // 모바일 모달 배경 클릭 시 닫기 - Safari 호환
     const mobileModalBackdrop = document.querySelector('.mobile-modal-backdrop');
     if (mobileModalBackdrop) {
-        mobileModalBackdrop.addEventListener('click', () => {
+        mobileModalBackdrop.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('Safari 모바일 모달 배경 클릭');
             closeMobileDistrictModal();
-        });
+        }, { passive: false, capture: true });
+        
+        mobileModalBackdrop.addEventListener('touchend', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('Safari 모바일 모달 배경 터치');
+            closeMobileDistrictModal();
+        }, { passive: false, capture: true });
+        
+        console.log('Safari 모바일 모달 배경 이벤트 리스너 추가 완료');
+    } else {
+        console.warn('Safari 모바일 모달 배경을 찾을 수 없습니다');
     }
     
-    // 모바일 모달 드래그 스와이프 닫기 기능
+    // 모바일 모달 드래그 스와이프 닫기 기능 - Safari 최적화
     const mobileModal = document.getElementById('mobile-district-modal');
     const mobileModalContent = document.querySelector('.mobile-modal-content');
     if (mobileModal && mobileModalContent) {
         let startY = 0;
         let currentY = 0;
         let isDragging = false;
+        let initialTransform = '';
         
-        mobileModalContent.addEventListener('touchstart', (e) => {
+        // Safari를 위한 터치 시작 이벤트
+        const handleTouchStart = function(e) {
+            if (e.target.closest('.mobile-modal-body')) {
+                // 모달 바디 내부에서는 드래그 비활성화
+                return;
+            }
+            
             startY = e.touches[0].clientY;
+            currentY = startY;
             isDragging = true;
-        }, { passive: true });
+            initialTransform = mobileModalContent.style.transform || 'translateY(0)';
+            
+            console.log('Safari 드래그 시작:', startY);
+        };
         
-        mobileModalContent.addEventListener('touchmove', (e) => {
+        // Safari를 위한 터치 이동 이벤트
+        const handleTouchMove = function(e) {
             if (!isDragging) return;
+            
             currentY = e.touches[0].clientY;
             const deltaY = currentY - startY;
             
             if (deltaY > 0) {
-                mobileModalContent.style.transform = `translateY(${Math.min(deltaY, 100)}px)`;
+                const translateY = Math.min(deltaY, 100);
+                mobileModalContent.style.transform = `translateY(${translateY}px)`;
+                
+                // Safari를 위한 스크롤 방지
+                e.preventDefault();
             }
-        }, { passive: true });
+        };
         
-        mobileModalContent.addEventListener('touchend', () => {
+        // Safari를 위한 터치 종료 이벤트
+        const handleTouchEnd = function(e) {
             if (!isDragging) return;
             isDragging = false;
             
             const deltaY = currentY - startY;
             
+            console.log('Safari 드래그 종료:', deltaY);
+            
             if (deltaY > 50) {
                 // 50px 이상 드래그하면 모달 닫기
+                console.log('Safari 드래그로 모달 닫기');
                 closeMobileDistrictModal();
             } else {
                 // 원래 위치로 복원
                 mobileModalContent.style.transform = 'translateY(0)';
             }
-        }, { passive: true });
+        };
+        
+        // Safari를 위한 이벤트 리스너 등록
+        mobileModalContent.addEventListener('touchstart', handleTouchStart, { passive: false });
+        mobileModalContent.addEventListener('touchmove', handleTouchMove, { passive: false });
+        mobileModalContent.addEventListener('touchend', handleTouchEnd, { passive: false });
+        
+        console.log('Safari 모바일 모달 드래그 이벤트 리스너 추가 완룼');
+    } else {
+        console.warn('Safari 모바일 모달 드래그 요소를 찾을 수 없습니다');
     }
     
     const cityLabel = document.querySelector('.city-select-label');

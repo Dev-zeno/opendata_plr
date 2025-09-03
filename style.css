@@ -797,12 +797,19 @@ body {
         right: 0;
         bottom: 0;
         z-index: 9999;
+        display: -webkit-flex;
         display: flex;
+        -webkit-align-items: flex-end;
         align-items: flex-end;
+        -webkit-transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
         transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
         opacity: 0;
         visibility: hidden;
         pointer-events: none;
+        /* Safari specific fixes */
+        -webkit-transform: translate3d(0, 0, 0);
+        transform: translate3d(0, 0, 0);
+        will-change: opacity, visibility;
     }
     
     .mobile-modal:not(.hidden) {
@@ -818,8 +825,11 @@ body {
         right: 0;
         bottom: 0;
         background: rgba(0, 0, 0, 0.5);
-        backdrop-filter: blur(4px);
+        /* Safari backdrop filter fix */
         -webkit-backdrop-filter: blur(4px);
+        backdrop-filter: blur(4px);
+        /* Safari fallback */
+        background-color: rgba(0, 0, 0, 0.6);
     }
     
     .mobile-modal-content {
@@ -828,40 +838,67 @@ body {
         max-height: 80vh;
         background: #ffffff;
         border-radius: 20px 20px 0 0;
+        /* Safari transform fix */
+        -webkit-transform: translateY(100%);
         transform: translateY(100%);
+        -webkit-transition: -webkit-transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
         transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        display: -webkit-flex;
         display: flex;
+        -webkit-flex-direction: column;
         flex-direction: column;
         box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+        /* Safari hardware acceleration */
+        -webkit-transform: translate3d(0, 100%, 0);
+        transform: translate3d(0, 100%, 0);
+        will-change: transform;
     }
     
     .mobile-modal:not(.hidden) .mobile-modal-content {
+        -webkit-transform: translateY(0);
         transform: translateY(0);
+        /* Safari hardware acceleration */
+        -webkit-transform: translate3d(0, 0, 0);
+        transform: translate3d(0, 0, 0);
     }
     
     .mobile-modal-header {
         position: relative;
         padding: 16px 20px 12px;
         border-bottom: 1px solid #f1f5f9;
+        display: -webkit-flex;
         display: flex;
+        -webkit-align-items: center;
         align-items: center;
+        -webkit-justify-content: space-between;
         justify-content: space-between;
+        /* Safari flex fix */
+        -webkit-flex-shrink: 0;
+        flex-shrink: 0;
     }
     
     .mobile-modal-drag-handle {
         position: absolute;
         top: 8px;
         left: 50%;
+        -webkit-transform: translateX(-50%);
         transform: translateX(-50%);
         width: 40px;
         height: 4px;
         background: #d1d5db;
         border-radius: 2px;
+        /* Safari touch optimization */
+        -webkit-user-select: none;
+        user-select: none;
     }
     
     .mobile-modal-title {
+        -webkit-flex: 1;
         flex: 1;
         text-align: center;
+        /* Safari text rendering */
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
     }
     
     #mobile-current-city-name {
@@ -869,6 +906,8 @@ body {
         font-weight: 600;
         color: #1f2937;
         display: block;
+        /* Safari text rendering */
+        -webkit-font-smoothing: antialiased;
     }
     
     .mobile-modal-subtitle {
@@ -884,12 +923,22 @@ body {
         border: none;
         background: #f9fafb;
         border-radius: 50%;
+        display: -webkit-flex;
         display: flex;
+        -webkit-align-items: center;
         align-items: center;
+        -webkit-justify-content: center;
         justify-content: center;
         color: #6b7280;
         cursor: pointer;
+        -webkit-transition: all 0.2s ease;
         transition: all 0.2s ease;
+        /* Safari button fixes */
+        -webkit-appearance: none;
+        -webkit-tap-highlight-color: transparent;
+        outline: none;
+        -webkit-user-select: none;
+        user-select: none;
     }
     
     .mobile-modal-close:hover {
@@ -898,10 +947,14 @@ body {
     }
     
     .mobile-modal-body {
+        -webkit-flex: 1;
         flex: 1;
         padding: 20px;
         overflow-y: auto;
         -webkit-overflow-scrolling: touch;
+        /* Safari scroll optimization */
+        -webkit-transform: translate3d(0, 0, 0);
+        transform: translate3d(0, 0, 0);
     }
     
     .mobile-all-btn {
@@ -911,12 +964,26 @@ body {
         color: white !important;
         border-color: #3b82f6 !important;
         font-weight: 600;
+        /* Safari button fixes */
+        -webkit-appearance: none;
+        border-radius: 8px;
+        min-height: 48px;
+        display: -webkit-flex;
+        display: flex;
+        -webkit-align-items: center;
+        align-items: center;
+        -webkit-justify-content: center;
+        justify-content: center;
     }
     
     .mobile-district-grid {
+        display: -webkit-grid;
         display: grid;
+        -webkit-grid-template-columns: repeat(2, 1fr);
         grid-template-columns: repeat(2, 1fr);
         gap: 12px;
+        /* Safari grid fallback */
+        -webkit-grid-gap: 12px;
     }
     
     .mobile-district-btn {
@@ -929,26 +996,52 @@ body {
         font-size: 15px;
         font-weight: 500;
         cursor: pointer;
+        -webkit-transition: all 0.2s ease;
         transition: all 0.2s ease;
+        display: -webkit-flex;
         display: flex;
+        -webkit-align-items: center;
         align-items: center;
+        -webkit-justify-content: center;
         justify-content: center;
         text-align: center;
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        /* Safari specific optimizations */
         -webkit-tap-highlight-color: transparent;
+        -webkit-appearance: none;
+        -webkit-user-select: none;
+        user-select: none;
+        -webkit-touch-callout: none;
+        /* Safari hardware acceleration */
+        -webkit-transform: translate3d(0, 0, 0);
+        transform: translate3d(0, 0, 0);
+        will-change: transform, background-color;
+        /* Safari font smoothing */
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        /* Safari box model fix */
+        box-sizing: border-box;
+        -webkit-box-sizing: border-box;
     }
     
     .mobile-district-btn:hover,
     .mobile-district-btn:active {
         background: #f3f4f6;
         border-color: #3b82f6;
+        -webkit-transform: scale(0.98);
         transform: scale(0.98);
+        /* Safari hardware acceleration */
+        -webkit-transform: translate3d(0, 0, 0) scale(0.98);
+        transform: translate3d(0, 0, 0) scale(0.98);
     }
     
     .mobile-district-btn.selected {
         background: #3b82f6;
         color: white;
         border-color: #3b82f6;
+        /* Safari hardware acceleration */
+        -webkit-transform: translate3d(0, 0, 0);
+        transform: translate3d(0, 0, 0);
     }
     
     .mobile-district-btn:disabled {
@@ -956,7 +1049,9 @@ body {
         color: #9ca3af;
         border-color: #f3f4f6;
         cursor: not-allowed;
+        -webkit-transform: none;
         transform: none;
+        opacity: 0.6;
     }
     
     .mobile-district-btn .count {
@@ -965,10 +1060,13 @@ body {
         opacity: 0.8;
     }
     
-    /* 터치 피드백 개선 */
+    /* Safari specific touch feedback improvements */
     .mobile-district-btn:active {
-        background: #2563eb;
-        color: white;
+        background: #2563eb !important;
+        color: white !important;
+        border-color: #2563eb !important;
+        -webkit-transform: translate3d(0, 0, 0) scale(0.95);
+        transform: translate3d(0, 0, 0) scale(0.95);
     }
     
     /* iOS Safari 최적화 */
