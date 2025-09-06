@@ -765,7 +765,7 @@ body {
 @media (max-width: 768px) {
     #mobile-toggle {
         position: fixed;
-        bottom: 35px; /* 20px에서 25px로 변경하여 5px 위로 이동 */
+        bottom: 70px; /* 20px에서 25px로 변경하여 5px 위로 이동 */
         right: 20px;
         width: 56px;
         height: 56px;
