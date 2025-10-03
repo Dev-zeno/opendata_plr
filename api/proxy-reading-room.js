@@ -20,7 +20,8 @@ module.exports = async function handler(req, res) {
   }
   
   try {
-    const url = `https://apis.data.go.kr/B551982/plr/rlt_rdrm_info?serviceKey=80j%2FK4JyieJVqIy2fT0qM5ziOrx42wpgHUNb%2BKZQOQ8fGYSohlz2aUfwIBnGQYO38KXJ2szvUBa%2FCOX2W95PuQ%3D%3D&pageNo=1&numOfRows=1000&type=json`;
+    const url = `https://opendata.klid.or.kr/hapi/pblib/rlt_rdrm_info?pageNo=1&numOfRows=10&serviceKey=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJzZXJ2aWNlX2tleSIsImV4cCI6MjA1MjAxNDEwMywidXNlcl9jb2RlIjoiSE9NRSIsInVzZXJfcm9sZSI6InBiZG8ifQ.exJZSk_ABg7Jv3AaS0dsUzOFqT39F8M_gntxZt2EthZM40uqI9-RQtz7HTHd5UeFMF4brphJTYkmXDVg74_YTg';
+    // const url = `https://apis.data.go.kr/B551982/plr/rlt_rdrm_info?serviceKey=80j%2FK4JyieJVqIy2fT0qM5ziOrx42wpgHUNb%2BKZQOQ8fGYSohlz2aUfwIBnGQYO38KXJ2szvUBa%2FCOX2W95PuQ%3D%3D&pageNo=1&numOfRows=1000&type=json`;
     
     const data = await new Promise((resolve, reject) => {
       https.get(url, (response) => {
