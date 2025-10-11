@@ -1,5 +1,6 @@
 // api/proxy.js - Using Node.js built-in https module
 const https = require('https');
+const xml2js = require('xml2js');
 
 module.exports = async function handler(req, res) {
   // CORS 헤더 설정
@@ -20,7 +21,7 @@ module.exports = async function handler(req, res) {
   }
   
   try {
-    const url = `https://apis.data.go.kr/B551982/plr/info?serviceKey=80j%2FK4JyieJVqIy2fT0qM5ziOrx42wpgHUNb%2BKZQOQ8fGYSohlz2aUfwIBnGQYO38KXJ2szvUBa%2FCOX2W95PuQ%3D%3D&pageNo=1&numOfRows=1000&type=json`;
+    const url = `https://opendata.klid.or.kr/hapi/pblib/info?pageNo=1&numOfRows=100&serviceKey=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJzZXJ2aWNlX2tleSIsImV4cCI6MjA1MjAxNDEwMywidXNlcl9jb2RlIjoiSE9NRSIsInVzZXJfcm9sZSI6InBiZG8ifQ.exJZSk_ABg7Jv3AaS0dsUzOFqT39F8M_gntxZt2EthZM40uqI9-RQtz7HTHd5UeFMF4brphJTYkmXDVg74_YTg`;
     
     const data = await new Promise((resolve, reject) => {
       https.get(url, (response) => {
@@ -32,9 +33,23 @@ module.exports = async function handler(req, res) {
         
         response.on('end', () => {
           try {
-            resolve(JSON.parse(data));
+            // 응답이 JSON 형식인지 XML 형식인지 확인
+            if (data.trim().startsWith('{') || data.trim().startsWith('[')) {
+              // JSON 형식인 경우
+              resolve(JSON.parse(data));
+            } else {
+              // XML 형식인 경우
+              const parser = new xml2js.Parser({ explicitArray: false });
+              parser.parseString(data, (err, result) => {
+                if (err) {
+                  reject(new Error('Invalid XML response'));
+                } else {
+                  resolve(result);
+                }
+              });
+            }
           } catch (error) {
-            reject(new Error('Invalid JSON response'));
+            reject(new Error('Invalid response format'));
           }
         });
       }).on('error', (error) => {
