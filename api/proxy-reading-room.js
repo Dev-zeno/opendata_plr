@@ -20,8 +20,9 @@ module.exports = async function handler(req, res) {
     return;
   }
   
+  // 1000 줄 변경
   try {
-    const url = `https://opendata.klid.or.kr/hapi/pblib/rlt_rdrm_info?pageNo=1&numOfRows=100&serviceKey=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJzZXJ2aWNlX2tleSIsImV4cCI6MjA1MjAxNDEwMywidXNlcl9jb2RlIjoiSE9NRSIsInVzZXJfcm9sZSI6InBiZG8ifQ.exJZSk_ABg7Jv3AaS0dsUzOFqT39F8M_gntxZt2EthZM40uqI9-RQtz7HTHd5UeFMF4brphJTYkmXDVg74_YTg`;
+    const url = `https://opendata.klid.or.kr/hapi/pblib/rlt_rdrm_info?pageNo=1&numOfRows=1000&serviceKey=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJzZXJ2aWNlX2tleSIsImV4cCI6MjA1MjAxNDEwMywidXNlcl9jb2RlIjoiSE9NRSIsInVzZXJfcm9sZSI6InBiZG8ifQ.exJZSk_ABg7Jv3AaS0dsUzOFqT39F8M_gntxZt2EthZM40uqI9-RQtz7HTHd5UeFMF4brphJTYkmXDVg74_YTg`;
     
     const data = await new Promise((resolve, reject) => {
       https.get(url, (response) => {
