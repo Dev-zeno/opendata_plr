@@ -1981,10 +1981,8 @@ function displayLibraries(libraries) {
 
             naver.maps.Event.addListener(marker, 'click', function (e) {
                 // PC/Mobile 구분 없이 마커 클릭 시 사이드바 상에서도 상세 뷰를 보여줌
-                if (!isMobileDevice()) {
-                    renderMapDetailPanel(lib);
-                    showMapDetailPanel();
-                }
+                renderMapDetailPanel(lib);
+                showMapDetailPanel();
 
                 // Stop event propagation to prevent the map click listener from firing
                 naver.maps.Event.stop(e);
@@ -2006,23 +2004,74 @@ function createBubbleButtons() {
     }
 
     bubbleContainer.innerHTML = ''; // Clear previous buttons
-    const addressPrefixes = new Set();
-    allLibraries.forEach(lib => {
-        if (lib.pblibRoadNmAddr) {
-            const prefix = lib.pblibRoadNmAddr.split(' ')[0];
-            addressPrefixes.add(prefix);
-        }
-    });
 
-    addressPrefixes.forEach(prefix => {
-        const button = document.createElement('button');
-        button.className = 'bubble-button';
-        button.textContent = prefix;
-        button.addEventListener('click', () => {
-            document.getElementById('search-input').value = prefix;
-            performSearch();
+    const sidos = [
+        { label: '서울', value: '서울특별시', prefixes: ['서울', '서울특별시'] },
+        { label: '부산', value: '부산광역시', prefixes: ['부산', '부산광역시'] },
+        { label: '대구', value: '대구광역시', prefixes: ['대구', '대구광역시'] },
+        { label: '인천', value: '인천광역시', prefixes: ['인천', '인천광역시'] },
+        { label: '광주', value: '광주광역시', prefixes: ['광주', '광주광역시'] },
+        { label: '대전', value: '대전광역시', prefixes: ['대전', '대전광역시'] },
+        { label: '울산', value: '울산광역시', prefixes: ['울산', '울산광역시'] },
+        { label: '세종', value: '세종특별자치시', prefixes: ['세종', '세종특별자치시'] },
+        { label: '경기', value: '경기도', prefixes: ['경기', '경기도'] },
+        { label: '강원', value: '강원특별자치도', prefixes: ['강원', '강원도', '강원특별자치도'] },
+        { label: '충북', value: '충청북도', prefixes: ['충북', '충청북도', '충청'] },
+        { label: '충남', value: '충청남도', prefixes: ['충남', '충청남도'] },
+        { label: '전북', value: '전북특별자치도', prefixes: ['전북', '전라북도', '전북특별자치도', '전라'] },
+        { label: '전남', value: '전라남도', prefixes: ['전남', '전라남도'] },
+        { label: '경북', value: '경상북도', prefixes: ['경북', '경상북도', '경상'] },
+        { label: '경남', value: '경상남도', prefixes: ['경남', '경상남도'] },
+        { label: '제주', value: '제주특별자치도', prefixes: ['제주', '제주도', '제주특별자치도'] }
+    ];
+
+    sidos.forEach(sido => {
+        // Check if any library address matches this sido
+        const isActive = allLibraries.some(lib => {
+            if (!lib.pblibRoadNmAddr) return false;
+            // Exact match for predefined value
+            if (lib.pblibRoadNmAddr.startsWith(sido.value)) return true;
+
+            const p = lib.pblibRoadNmAddr.split(' ')[0];
+
+            // Special handling for ambiguous prefixes like "경상"
+            if (p === '경상') {
+                if (sido.label === '경북' && lib.pblibRoadNmAddr.includes('북도')) return true;
+                if (sido.label === '경남' && lib.pblibRoadNmAddr.includes('남도')) return true;
+            }
+            if (p === '충청') {
+                if (sido.label === '충북' && lib.pblibRoadNmAddr.includes('북도')) return true;
+                if (sido.label === '충남' && lib.pblibRoadNmAddr.includes('남도')) return true;
+            }
+            if (p === '전라') {
+                if (sido.label === '전북' && lib.pblibRoadNmAddr.includes('북도')) return true;
+                if (sido.label === '전남' && lib.pblibRoadNmAddr.includes('남도')) return true;
+            }
+
+            return sido.prefixes.includes(p) && !['경상', '충청', '전라'].includes(p);
         });
-        bubbleContainer.appendChild(button);
+
+        if (isActive) {
+            const button = document.createElement('button');
+            button.className = 'px-3 py-1.5 bg-white border border-gray-200 text-gray-700 text-[13px] font-medium rounded-full hover:bg-gray-50 hover:border-gray-300 hover:text-indigo-600 transition-colors shadow-sm cursor-pointer whitespace-nowrap';
+            button.textContent = sido.label;
+            button.addEventListener('click', () => {
+                const citySelect = document.getElementById('city-select');
+                if (citySelect) {
+                    citySelect.value = sido.value;
+                    // Trigger the change event so the district list updates and filters apply
+                    citySelect.dispatchEvent(new Event('change'));
+                } else {
+                    // Fallback to text search if select is missing
+                    const searchInput = document.getElementById('search-input');
+                    if (searchInput) {
+                        searchInput.value = sido.label;
+                        searchInput.dispatchEvent(new Event('input'));
+                    }
+                }
+            });
+            bubbleContainer.appendChild(button);
+        }
     });
 }
 // Old search logic removed and replaced by initializeSidebarFilters

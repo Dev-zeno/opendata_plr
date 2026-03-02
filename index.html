@@ -177,7 +177,7 @@
     <div id="sidebar"
         class="w-80 h-full bg-white border-r border-gray-200 flex flex-col shrink-0 flex-1 overflow-hidden z-10 transition-all">
         <!-- 모바일 드래그 핸들 -->
-        <div class="mobile-drag-handle flex justify-center py-2 relative">
+        <div class="mobile-drag-handle flex justify-center py-2 relative mobile-only">
             <div class="drag-indicator w-12 h-1.5 bg-gray-300 rounded-full"></div>
         </div>
 
@@ -210,6 +210,9 @@
                             class="bg-white border border-gray-200 text-gray-900 text-[15px] rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 p-2.5 outline-none transition-colors"
                             placeholder="도서관 이름 검색">
                     </div>
+
+                    <!-- 추가된 버블 메뉴 버튼 컨테이너 -->
+                    <div id="bubble-container" class="bubble-container flex flex-wrap gap-2 mt-3"></div>
                 </div>
 
                 <div

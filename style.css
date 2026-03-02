@@ -360,19 +360,22 @@ body {
     #sidebar.collapsed {
         top: calc(100vh - 80px);
         /* 축소된 위치 */
+        width: 100% !important;
+        display: block !important;
+        flex: none !important;
     }
 
-    /* Bottom sheet handle - 드래그 인디케이터 개선 */
+    /* Bottom sheet handle - 드래그 인디케이터 개선 및 터치 영역 확보 */
     #sidebar::before {
         content: '';
         position: absolute;
-        top: 8px;
+        top: 12px;
         left: 50%;
         transform: translateX(-50%);
         width: 40px;
-        height: 4px;
+        height: 5px;
         background-color: #d1d5db;
-        border-radius: 2px;
+        border-radius: 3px;
         z-index: 2;
         transition: background-color 0.2s ease;
     }
@@ -467,28 +470,6 @@ body {
         /* 클릭 효과 */
         transform: scale(0.98);
         /* 살짝 축소 효과 */
-    }
-
-    /* 메인 드래그 인디케이터 바 */
-    .sidebar-header::before {
-        content: '';
-        position: absolute;
-        top: 8px;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 50px;
-        height: 5px;
-        background: linear-gradient(90deg, #e5e7eb 0%, #9ca3af 50%, #e5e7eb 100%);
-        border-radius: 3px;
-        opacity: 0.8;
-        transition: opacity 0.2s ease;
-    }
-
-    /* h1 클릭 시 인디케이터 강조 */
-    .sidebar-header h1:active+*~*::before,
-    .sidebar-header h1:active~.sidebar-header::before {
-        opacity: 1;
-        background: linear-gradient(90deg, #9ca3af 0%, #6b7280 50%, #9ca3af 100%);
     }
 
     /* 모바일에서 시도 텍스트 크기 조정 */
@@ -1559,6 +1540,18 @@ body {
 #sidebar.collapsed~#map-container #map-detail-panel,
 #sidebar.collapsed+#map-container #map-detail-panel {
     left: 8px;
+}
+
+@media (max-width: 768px) {
+    #map-detail-panel {
+        top: 16px !important;
+        left: 16px !important;
+        right: 16px !important;
+        width: auto !important;
+        max-width: none !important;
+        max-height: 50vh !important;
+        z-index: 100 !important;
+    }
 }
 
 @media (max-width: 768px) {
