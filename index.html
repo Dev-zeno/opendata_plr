@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
     <!-- Safari HTTPS 호환성을 위한 메타 태그 -->
     <meta charset="UTF-8">
@@ -10,12 +11,17 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-touch-fullscreen" content="yes">
     <title>전국 공공도서관 열람실 현황</title>
-    
+
     <!-- 프리로드 필수 리소스 -->
-    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <!-- 구글 폰트 추가 (Inter, Noto Sans KR 혼용) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preload"
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap"
+        as="style" onload="this.onload=null;this.rel='stylesheet'">
     <link rel="preload" href="style.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
     <link rel="preload" href="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=hgte1ya8vs" as="script">
-    
+
     <!-- Safari HTTPS 환경을 위한 인라인 크리티컬 CSS -->
     <style>
         /* Safari 기본 리셋 */
@@ -27,14 +33,15 @@
             -ms-user-select: none;
             user-select: none;
         }
-        
-        input, textarea {
+
+        input,
+        textarea {
             -webkit-user-select: auto;
             -moz-user-select: auto;
             -ms-user-select: auto;
             user-select: auto;
         }
-        
+
         body {
             font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             margin: 0;
@@ -49,7 +56,7 @@
             /* Safari 터치 최적화 */
             -webkit-overflow-scrolling: touch;
         }
-        
+
         #loading-indicator {
             position: fixed;
             top: 0;
@@ -67,7 +74,7 @@
             backdrop-filter: blur(5px);
             -webkit-backdrop-filter: blur(5px);
         }
-        
+
         /* Safari 모바일 모달 기본 스타일 */
         .mobile-modal {
             -webkit-backface-visibility: hidden;
@@ -75,67 +82,84 @@
             -webkit-perspective: 1000px;
             perspective: 1000px;
         }
-        
+
         .mobile-modal-content {
             -webkit-transform: translate3d(0, 100%, 0);
             transform: translate3d(0, 100%, 0);
             will-change: transform;
         }
-        
+
         .mobile-modal:not(.hidden) .mobile-modal-content {
             -webkit-transform: translate3d(0, 0, 0);
             transform: translate3d(0, 0, 0);
         }
     </style>
-    
+
     <!-- 비동기 리소스 (렌더링 블로킹 방지) -->
     <script>
-        // Tailwind CSS 비동기 로드
+        // Tailwind CSS 비동기 로드 및 기본 폰트 설정
         const tailwindScript = document.createElement('script');
         tailwindScript.src = 'https://cdn.tailwindcss.com';
-        tailwindScript.async = true;
+        tailwindScript.async = false; // 순서 보장을 위해 동기적으로 실행
         document.head.appendChild(tailwindScript);
-        
+
+        tailwindScript.onload = () => {
+            tailwind.config = {
+                theme: {
+                    extend: {
+                        fontFamily: {
+                            sans: ['Inter', 'Noto Sans KR', 'sans-serif'],
+                        }
+                    }
+                }
+            }
+        };
+
         // Font Awesome 비동기 로드
         const fontAwesome = document.createElement('link');
         fontAwesome.rel = 'stylesheet';
         fontAwesome.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css';
         document.head.appendChild(fontAwesome);
     </script>
-    
+
     <!-- 네이버 지도 API 동기 로드 (지도 초기화를 위해 중요) -->
     <script type="text/javascript" src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=hgte1ya8vs"></script>
-    
+
     <!-- SEO 메타데이터 -->
     <meta property="og:title" content="전국 공공도서관 열람실 현황">
-    <meta name="title" property="og:title" content="전국 공공도서관 열람실 현황"/>
+    <meta name="title" property="og:title" content="전국 공공도서관 열람실 현황" />
     <meta property="og:description" content="전국 공공도서관의 실시간 좌석 현황을 확인하세요. 지역별 도서관 검색 및 지도 제공.">
-    <meta property="og:url" content="https://opendata-plr.vercel.app/">    
+    <meta property="og:url" content="https://opendata-plr.vercel.app/">
     <meta name="keywords" content="전국, 공공도서관, 도서관, 열람실, 좌석, 실시간, 현황">
     <meta property="og:site_name" content="전국 공공도서관 열람실 현황">
-    
+
     <!-- 중요하지 않은 리소스들은 defer로 지연 로드 -->
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5020907728147444" crossorigin="anonymous"></script>
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5020907728147444"
+        crossorigin="anonymous"></script>
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-930VGD9QPS"></script>
-    
+
     <!-- Google Tag Manager -->
-    <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-    new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-    'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-    })(window,document,'script','dataLayer','GTM-M36CX7BQ');</script>
+    <script>(function (w, d, s, l, i) {
+            w[l] = w[l] || []; w[l].push({
+                'gtm.start':
+                    new Date().getTime(), event: 'gtm.js'
+            }); var f = d.getElementsByTagName(s)[0],
+                j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : ''; j.async = true; j.src =
+                    'https://www.googletagmanager.com/gtm.js?id=' + i + dl; f.parentNode.insertBefore(j, f);
+        })(window, document, 'script', 'dataLayer', 'GTM-M36CX7BQ');</script>
     <!-- End Google Tag Manager -->
 </head>
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-930VGD9QPS"></script>
 <script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag('js', new Date());
 
-  gtag('config', 'G-930VGD9QPS');
+    gtag('config', 'G-930VGD9QPS');
 </script>
-<body>    
+
+<body>
     <!-- Mobile Top Search Header (Mobile Only) -->
     <div class="mobile-search-header">
         <div class="mobile-search-container">
@@ -149,58 +173,82 @@
         </div>
     </div>
 
-    <!-- Main Sidebar (Original PC Design) -->
-    <div id="sidebar">
+    <!-- Main Sidebar (Tailwind Base Design) -->
+    <div id="sidebar"
+        class="w-80 h-full bg-white border-r border-gray-200 flex flex-col shrink-0 flex-1 overflow-hidden z-10 transition-all">
         <!-- 모바일 드래그 핸들 -->
-        <div class="mobile-drag-handle">
-            <div class="drag-indicator"></div>
+        <div class="mobile-drag-handle flex justify-center py-2 relative">
+            <div class="drag-indicator w-12 h-1.5 bg-gray-300 rounded-full"></div>
         </div>
-        
-        <div class="sidebar-header">
-            <h1>전국 공공도서관 실시간 좌석현황</h1>
-            <div class="search-container">
-                <div class="relative">
-                    <i class="fas fa-search"></i>
-                    <input type="text" id="search-input" placeholder="도서관명 또는 지역으로 검색...">
-                    <button id="search-button" class="hidden"></button>
+
+        <!-- Sidebar List View (Default) -->
+        <div id="sidebar-list-view" class="flex-col h-full flex w-full">
+            <div class="sidebar-header p-5 border-b border-gray-200 shrink-0">
+                <div class="flex items-center space-x-2 text-indigo-600 mb-5">
+                    <i class="fa-solid fa-book-open text-xl"></i>
+                    <h1 class="text-xl font-bold tracking-tight text-gray-900 m-0 leading-tight">도서관 자리찾기</h1>
+                </div>
+
+                <!-- 필터 & 검색 영역 -->
+                <div id="filter-content" class="mb-5 space-y-3">
+                    <div id="city-selection-container" class="flex space-x-2 w-full">
+                        <select id="city-select"
+                            class="flex-1 bg-white border border-gray-200 text-gray-900 text-[15px] font-medium rounded-lg hover:border-indigo-300 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2.5 outline-none transition-colors cursor-pointer">
+                            <option value="">시/도 선택</option>
+                        </select>
+                        <select id="district-select"
+                            class="flex-1 bg-white border border-gray-200 text-gray-900 text-[15px] font-medium rounded-lg hover:border-indigo-300 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2.5 outline-none transition-colors cursor-pointer disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed"
+                            disabled>
+                            <option value="">전체</option>
+                        </select>
+                    </div>
+                    <div class="search-container relative w-full">
+                        <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                            <i class="fas fa-search text-gray-400"></i>
+                        </div>
+                        <input type="text" id="search-input"
+                            class="bg-white border border-gray-200 text-gray-900 text-[15px] rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 p-2.5 outline-none transition-colors"
+                            placeholder="도서관 이름 검색">
+                    </div>
+                </div>
+
+                <div
+                    class="update-info flex justify-between items-center text-xs text-gray-500 mt-4 pt-3 border-t border-gray-100">
+                    <span id="update-time">업데이트 중...</span>
+                    <button id="refresh-button"
+                        class="text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 px-2 py-1 rounded transition-colors bg-transparent border-none cursor-pointer flex items-center">
+                        <i class="fas fa-sync-alt mr-1"></i> 새로고침
+                    </button>
                 </div>
             </div>
-            <div class="update-info">
-                <span id="update-time">업데이트 : 오후 7:21:16</span>
-                <button id="refresh-button"><i class="fas fa-sync-alt"></i> 새로고침</button>
-            </div>
-        </div>
-        
-        <div id="filter-content">
-            <div id="city-selection-container">
-                <select id="city-select" class="hidden"></select>
-                <span class="city-select-label">시도 선택</span>
-                <div id="city-buttons"></div>
-            </div>
-            <div id="district-selection-container" class="hidden">
-                <button id="back-to-cities"><i class="fas fa-arrow-left"></i> 뒤로</button>
-                <span id="current-city-name"></span> 하위 지역
-                <div id="district-buttons"></div>
-            </div>
-        </div>
-        
 
-        
-        <div id="search-results"></div>
+            <!-- Search Results (flex-1 for scrolling) -->
+            <div id="search-results" class="flex-1 overflow-y-auto p-3 space-y-3 bg-gray-50"></div>
+        </div>
+
+    </div>
     </div>
 
     <!-- Map Container -->
-    <div id="map-container">
+    <div id="map-container" class="relative">
+        <!-- Map Detail Panel (Overlay) -->
+        <div id="map-detail-panel"
+            class="hidden absolute top-4 left-4 z-20 w-[360px] max-w-[calc(100vw-32px)] bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden max-h-[calc(100vh-32px)] flex-col">
+            <!-- 렌더링 영역 (JS에서 채움) -->
+        </div>
+
         <div id="map"></div>
-        
+
         <!-- Desktop Sidebar Toggle -->
-        <button id="sidebar-toggle" class="desktop-only">◀</button>
-        
+        <button id="sidebar-toggle" class="desktop-only text-gray-500 flex items-center justify-center">
+            <i class="fas fa-chevron-left"></i>
+        </button>
+
         <!-- Mobile Bottom Sheet Toggle -->
         <button id="mobile-toggle" class="mobile-only">
             <i class="fas fa-list"></i>
         </button>
-        
+
         <!-- 플로팅 액션 버튼들 -->
         <div class="floating-actions">
             <button class="floating-btn" title="위치">
@@ -213,7 +261,7 @@
                 <i class="fas fa-layer-group"></i>
             </button>
         </div>
-        
+
         <!-- 통계 카드 -->
         <div class="summary-stats">
             <div class="stat-item">
@@ -230,15 +278,15 @@
             </div>
         </div>
     </div>
-    
+
     <!-- 모달 -->
     <div id="modal-container" class="hidden">
         <div id="modal-content">
             <span id="modal-close">&times;</span>
             <iframe id="seat-map-frame" src="" frameborder="0"></iframe>
         </div>
-    </div> 
-    
+    </div>
+
     <!-- 모바일 시군구 선택 모달 -->
     <div id="mobile-district-modal" class="mobile-modal hidden">
         <div class="mobile-modal-backdrop"></div>
@@ -263,20 +311,21 @@
             </div>
         </div>
     </div>
-    
+
     <!-- 메인 스크립트 동기 로드 (모바일 기능 정상 동작을 위해) -->
     <script src="script.js"></script>
-    
+
     <script>
         // Google Analytics 설정
         window.dataLayer = window.dataLayer || [];
-        function gtag(){dataLayer.push(arguments);}
+        function gtag() { dataLayer.push(arguments); }
         gtag('js', new Date());
         gtag('config', 'G-930VGD9QPS');
     </script>
 </body>
 <!-- Google Tag Manager (noscript) -->
-<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-M36CX7BQ"
-height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-M36CX7BQ" height="0" width="0"
+        style="display:none;visibility:hidden"></iframe></noscript>
 <!-- End Google Tag Manager (noscript) -->
+
 </html>
