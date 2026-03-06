@@ -252,18 +252,7 @@
             <i class="fas fa-list"></i>
         </button>
 
-        <!-- 플로팅 액션 버튼들 -->
-        <div class="floating-actions">
-            <button class="floating-btn" title="위치">
-                <i class="fas fa-crosshairs"></i>
-            </button>
-            <button class="floating-btn" title="즐겨찾기" style="display: none;">
-                <i class="fas fa-star"></i>
-            </button>
-            <button class="floating-btn" title="레이어" style="display: none;">
-                <i class="fas fa-layer-group"></i>
-            </button>
-        </div>
+
 
         <!-- 통계 카드 -->
         <div class="summary-stats">
@@ -317,6 +306,19 @@
 
     <!-- 메인 스크립트 동기 로드 (모바일 기능 정상 동작을 위해) -->
     <script src="script.js"></script>
+
+    <!-- 플로팅 액션 버튼들 (Safari z-index 이슈 방지를 위해 body 직속으로 이동) -->
+    <div class="floating-actions">
+        <button class="floating-btn" title="위치">
+            <i class="fas fa-crosshairs"></i>
+        </button>
+        <button class="floating-btn" title="즐겨찾기" style="display: none;">
+            <i class="fas fa-star"></i>
+        </button>
+        <button class="floating-btn" title="레이어" style="display: none;">
+            <i class="fas fa-layer-group"></i>
+        </button>
+    </div>
 
     <script>
         // Google Analytics 설정
