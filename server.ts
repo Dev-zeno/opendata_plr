@@ -17,11 +17,11 @@ async function startServer() {
   const PORT = 3000;
 
   // Mount API proxies for local development
-  app.get("/api/proxy-info", require("./api/proxy-info.cjs"));
-  app.get("/api/proxy-reading-room", require("./api/proxy-reading-room.cjs"));
-  app.get("/api/seat-map-proxy", require("./api/seat-map-proxy.cjs"));
-  app.get("/api/collect-data", require("./api/collect-data.cjs"));
-  app.get("/api/get-stats", require("./api/get-stats.cjs"));
+  app.get("/api/proxy-info", require("./api/proxy-info.js"));
+  app.get("/api/proxy-reading-room", require("./api/proxy-reading-room.js"));
+  app.get("/api/seat-map-proxy", require("./api/seat-map-proxy.js"));
+  app.get("/api/collect-data", require("./api/collect-data.js"));
+  app.get("/api/get-stats", require("./api/get-stats.js"));
 
   // API Proxy Route for IFrames to bypass mixed content and X-Frame-Options
   app.get("/api/iframe-proxy", async (req, res) => {
