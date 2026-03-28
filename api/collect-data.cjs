@@ -60,8 +60,8 @@ module.exports = async function handler(req, res) {
     // Group items by library
     const libMap = {};
     itemsArray.forEach(item => {
-      if (!item || !item.pblibNm || !item.stdgCd) return;
-      const libKey = `${item.stdgCd}-${item.pblibNm}`;
+      if (!item || !item.stdgCd || !item.pblibId) return;
+      const libKey = `${item.stdgCd}-${item.pblibId}`;
       if (!libMap[libKey]) {
         libMap[libKey] = { totalSeats: 0, usedSeats: 0, availableSeats: 0 };
       }
