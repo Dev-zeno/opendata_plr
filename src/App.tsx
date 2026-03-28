@@ -8,6 +8,7 @@ import LibraryDetail from './components/LibraryDetail';
 import { motion, AnimatePresence } from 'motion/react';
 import { Map as MapIcon, List, Info, Bell, Settings, Heart, Search as SearchIcon, Library as LibraryIcon, MapPin } from 'lucide-react';
 import Map from './components/Map';
+import AdBanner from './components/AdBanner';
 
 export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -293,14 +294,17 @@ export default function App() {
                 ) : (
                   <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                     {filteredLibraries.length > 0 ? (
-                      filteredLibraries.map((lib) => (
-                        <LibraryCard
-                          key={lib.id}
-                          library={lib}
-                          isFavorite={favorites.includes(lib.id)}
-                          onToggleFavorite={() => toggleFavorite(lib.id)}
-                          onClick={setSelectedLibrary}
-                        />
+                      filteredLibraries.map((lib, index) => (
+                        <>
+                          <LibraryCard
+                            key={lib.id}
+                            library={lib}
+                            isFavorite={favorites.includes(lib.id)}
+                            onToggleFavorite={() => toggleFavorite(lib.id)}
+                            onClick={setSelectedLibrary}
+                          />
+                          {(index + 1) % 6 === 0 && <AdBanner key={`ad-${index}`} />}
+                        </>
                       ))
                     ) : (
                       <div className="col-span-full flex flex-col items-center justify-center py-20 text-slate-400 space-y-4">
