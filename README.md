@@ -1,17 +1,20 @@
-# 전국 공공도서관 열람실 현황
+<div align="center">
+<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+</div>
 
-이 프로젝트는 공공데이터 포털의 전국 공공도서관 데이터를 활용하여 네이버 지도에 도서관 위치를 표시하는 웹 애플리케이션입니다.
+# Run and deploy your AI Studio app
 
-## 설정
+This contains everything you need to run your app locally.
 
-1. **네이버 지도 API 키 발급**
-   - [네이버 클라우드 플랫폼](https://www.ncloud.com/)에 접속하여 애플리케이션을 등록하고 클라이언트 ID를 발급받으세요.
-   - `index.html` 파일의 `YOUR_NAVER_CLIENT_ID`를 발급받은 클라이언트 ID로 교체하세요.
+View your app in AI Studio: https://ai.studio/apps/3a6714f5-ef62-4ef0-8b4c-b34bedbcec9c
 
-2. **공공데이터 포털 API 키 발급**
-   - [공공데이터 포털](https.data.go.kr)에 접속하여 '전국 통합데이터 공공도서관 실시간 열람실 현황 정보' API를 찾아 활용신청을 하고 인증키를 발급받으세요.
-   - `script.js` 파일의 `YOUR_PUBLIC_DATA_API_KEY`를 발급받은 인증키로 교체하세요.
+## Run Locally
 
-## 실행
+**Prerequisites:**  Node.js
 
-- `index.html` 파일을 웹 브라우저에서 열면 됩니다.
+
+1. Install dependencies:
+   `npm install`
+2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
+3. Run the app:
+   `npm run dev`

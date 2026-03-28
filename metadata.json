@@ -1,0 +1,5 @@
+{
+  "name": "모두의 열람실 (Everybody's Reading Room)",
+  "description": "전국 공공도서관 열람실의 실시간 좌석 정보를 모바일에서 편리하게 확인하세요.",
+  "requestFramePermissions": ["geolocation"]
+}

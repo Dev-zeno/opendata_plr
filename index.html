@@ -1,128 +1,19 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ko">
-
-<head>
-    <!-- Safari HTTPS 호환성을 위한 메타 태그 -->
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="format-detection" content="telephone=no">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="apple-touch-fullscreen" content="yes">
     <title>전국 공공도서관 열람실 현황</title>
 
-    <!-- 프리로드 필수 리소스 -->
     <!-- 구글 폰트 추가 (Inter, Noto Sans KR 혼용) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preload"
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap"
         as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <link rel="preload" href="style.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <link rel="preload" href="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=hgte1ya8vs" as="script">
 
-    <!-- Safari HTTPS 환경을 위한 인라인 크리티컬 CSS -->
-    <style>
-        /* Safari 기본 리셋 */
-        * {
-            -webkit-tap-highlight-color: transparent;
-            -webkit-touch-callout: none;
-            -webkit-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
-            user-select: none;
-        }
-
-        input,
-        textarea {
-            -webkit-user-select: auto;
-            -moz-user-select: auto;
-            -ms-user-select: auto;
-            user-select: auto;
-        }
-
-        body {
-            font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            margin: 0;
-            padding: 0;
-            height: 100vh;
-            overflow: hidden;
-            background: #f5f5f5;
-            /* Safari 하드웨어 가속 */
-            -webkit-transform: translate3d(0, 0, 0);
-            transform: translate3d(0, 0, 0);
-            will-change: transform;
-            /* Safari 터치 최적화 */
-            -webkit-overflow-scrolling: touch;
-        }
-
-        #loading-indicator {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(255, 255, 255, 0.95);
-            display: -webkit-flex;
-            display: flex;
-            -webkit-justify-content: center;
-            justify-content: center;
-            -webkit-align-items: center;
-            align-items: center;
-            z-index: 9999;
-            backdrop-filter: blur(5px);
-            -webkit-backdrop-filter: blur(5px);
-        }
-
-        /* Safari 모바일 모달 기본 스타일 */
-        .mobile-modal {
-            -webkit-backface-visibility: hidden;
-            backface-visibility: hidden;
-            -webkit-perspective: 1000px;
-            perspective: 1000px;
-        }
-
-        .mobile-modal-content {
-            -webkit-transform: translate3d(0, 100%, 0);
-            transform: translate3d(0, 100%, 0);
-            will-change: transform;
-        }
-
-        .mobile-modal:not(.hidden) .mobile-modal-content {
-            -webkit-transform: translate3d(0, 0, 0);
-            transform: translate3d(0, 0, 0);
-        }
-    </style>
-
-    <!-- 비동기 리소스 (렌더링 블로킹 방지) -->
-    <script>
-        // Tailwind CSS 비동기 로드 및 기본 폰트 설정
-        const tailwindScript = document.createElement('script');
-        tailwindScript.src = 'https://cdn.tailwindcss.com';
-        tailwindScript.async = false; // 순서 보장을 위해 동기적으로 실행
-        document.head.appendChild(tailwindScript);
-
-        tailwindScript.onload = () => {
-            tailwind.config = {
-                theme: {
-                    extend: {
-                        fontFamily: {
-                            sans: ['Inter', 'Noto Sans KR', 'sans-serif'],
-                        }
-                    }
-                }
-            }
-        };
-
-        // Font Awesome 비동기 로드
-        const fontAwesome = document.createElement('link');
-        fontAwesome.rel = 'stylesheet';
-        fontAwesome.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css';
-        document.head.appendChild(fontAwesome);
-    </script>
-
-    <!-- 네이버 지도 API 동기 로드 (지도 초기화를 위해 중요) -->
+    <!-- 네이버 지도 API 동기 로드 -->
     <script type="text/javascript" src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=hgte1ya8vs"></script>
 
     <!-- SEO 메타데이터 -->
@@ -133,10 +24,9 @@
     <meta name="keywords" content="전국, 공공도서관, 도서관, 열람실, 좌석, 실시간, 현황">
     <meta property="og:site_name" content="전국 공공도서관 열람실 현황">
 
-    <!-- 중요하지 않은 리소스들은 defer로 지연 로드 -->
+    <!-- 구글 애드센스 -->
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5020907728147444"
         crossorigin="anonymous"></script>
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-930VGD9QPS"></script>
 
     <!-- Google Tag Manager -->
     <script>(function (w, d, s, l, i) {
@@ -147,190 +37,24 @@
                 j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : ''; j.async = true; j.src =
                     'https://www.googletagmanager.com/gtm.js?id=' + i + dl; f.parentNode.insertBefore(j, f);
         })(window, document, 'script', 'dataLayer', 'GTM-M36CX7BQ');</script>
-    <!-- End Google Tag Manager -->
-</head>
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-930VGD9QPS"></script>
-<script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag() { dataLayer.push(arguments); }
-    gtag('js', new Date());
 
-    gtag('config', 'G-930VGD9QPS');
-</script>
-
-<body>
-    <!-- Mobile Top Search Header (Mobile Only) -->
-    <div class="mobile-search-header">
-        <div class="mobile-search-container">
-            <div class="mobile-search-box">
-                <i class="fas fa-search"></i>
-                <input type="text" id="mobile-search-input" placeholder="도서관명 또는 지역으로 검색...">
-            </div>
-        </div>
-        <div class="mobile-city-filter">
-            <div id="mobile-city-buttons" class="mobile-city-scroll"></div>
-        </div>
-    </div>
-
-    <!-- Main Sidebar (Tailwind Base Design) -->
-    <div id="sidebar"
-        class="w-80 h-full bg-white border-r border-gray-200 flex flex-col shrink-0 flex-1 overflow-hidden z-10 transition-all">
-        <!-- 모바일 드래그 핸들 -->
-        <div class="mobile-drag-handle flex justify-center py-2 relative mobile-only">
-            <div class="drag-indicator w-12 h-1.5 bg-gray-300 rounded-full"></div>
-        </div>
-
-        <!-- Sidebar List View (Default) -->
-        <div id="sidebar-list-view" class="flex-col h-full flex w-full">
-            <div class="sidebar-header p-5 border-b border-gray-200 shrink-0">
-                <div class="flex items-center space-x-2 text-indigo-600 mb-5">
-                    <i class="fa-solid fa-book-open text-xl"></i>
-                    <h1 class="text-xl font-bold tracking-tight text-gray-900 m-0 leading-tight">모두의 열람실</h1>
-                </div>
-
-                <!-- 필터 & 검색 영역 -->
-                <div id="filter-content" class="mb-5 space-y-3">
-                    <div id="city-selection-container" class="flex space-x-2 w-full">
-                        <select id="city-select"
-                            class="flex-1 bg-white border border-gray-200 text-gray-900 text-[15px] font-medium rounded-lg hover:border-indigo-300 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2.5 outline-none transition-colors cursor-pointer">
-                            <option value="">시/도 선택</option>
-                        </select>
-                        <select id="district-select"
-                            class="flex-1 bg-white border border-gray-200 text-gray-900 text-[15px] font-medium rounded-lg hover:border-indigo-300 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2.5 outline-none transition-colors cursor-pointer disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed"
-                            disabled>
-                            <option value="">전체</option>
-                        </select>
-                    </div>
-                    <div class="search-container relative w-full">
-                        <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                            <i class="fas fa-search text-gray-400"></i>
-                        </div>
-                        <input type="text" id="search-input"
-                            class="bg-white border border-gray-200 text-gray-900 text-[15px] rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 p-2.5 outline-none transition-colors"
-                            placeholder="도서관 이름 검색">
-                    </div>
-
-                    <!-- 추가된 버블 메뉴 버튼 컨테이너 -->
-                    <div id="bubble-container" class="bubble-container flex flex-wrap gap-2 mt-3"></div>
-                </div>
-
-                <div
-                    class="update-info flex justify-between items-center text-xs text-gray-500 mt-4 pt-3 border-t border-gray-100">
-                    <span id="update-time">업데이트 중...</span>
-                    <button id="refresh-button"
-                        class="text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 px-2 py-1 rounded transition-colors bg-transparent border-none cursor-pointer flex items-center">
-                        <i class="fas fa-sync-alt mr-1"></i> 새로고침
-                    </button>
-                </div>
-            </div>
-
-            <!-- Search Results (flex-1 for scrolling) -->
-            <div id="search-results" class="flex-1 overflow-y-auto p-3 space-y-3 bg-gray-50"></div>
-        </div>
-
-    </div>
-    </div>
-
-    <!-- Map Container -->
-    <div id="map-container" class="relative">
-        <!-- Map Detail Panel (Overlay) -->
-        <div id="map-detail-panel"
-            class="hidden absolute top-4 left-4 z-20 w-[360px] max-w-[calc(100vw-32px)] bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden max-h-[calc(100vh-32px)] flex-col">
-            <!-- 렌더링 영역 (JS에서 채움) -->
-        </div>
-
-        <div id="map"></div>
-
-        <!-- Desktop Sidebar Toggle -->
-        <button id="sidebar-toggle" class="desktop-only text-gray-500 flex items-center justify-center">
-            <i class="fas fa-chevron-left"></i>
-        </button>
-
-        <!-- Mobile Bottom Sheet Toggle -->
-        <button id="mobile-toggle" class="mobile-only">
-            <i class="fas fa-list"></i>
-        </button>
-
-
-
-        <!-- 통계 카드 -->
-        <div class="summary-stats">
-            <div class="stat-item">
-                <span class="stat-value" id="total-libraries">15</span>
-                <span class="stat-label">전국 도서관</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-value" id="available-seats">1008</span>
-                <span class="stat-label">잔여 좌석</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-value" id="total-seats">2450</span>
-                <span class="stat-label">전체 좌석</span>
-            </div>
-        </div>
-    </div>
-
-    <!-- 모달 -->
-    <div id="modal-container" class="hidden">
-        <div id="modal-content">
-            <span id="modal-close">&times;</span>
-            <iframe id="seat-map-frame" src="" frameborder="0"></iframe>
-        </div>
-    </div>
-
-    <!-- 모바일 시군구 선택 모달 -->
-    <div id="mobile-district-modal" class="mobile-modal hidden">
-        <div class="mobile-modal-backdrop"></div>
-        <div class="mobile-modal-content">
-            <div class="mobile-modal-header">
-                <div class="mobile-modal-drag-handle"></div>
-                <div class="mobile-modal-title">
-                    <span id="mobile-current-city-name">시도명</span>
-                    <span class="mobile-modal-subtitle">지역 선택</span>
-                </div>
-                <button id="mobile-modal-close" class="mobile-modal-close">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <div class="mobile-modal-body">
-                <button id="mobile-all-districts" class="mobile-district-btn mobile-all-btn">
-                    전체 <span class="count">0</span>
-                </button>
-                <div id="mobile-district-list" class="mobile-district-grid">
-                    <!-- 시군구 버튼들이 동적으로 생성됩니다 -->
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 메인 스크립트 동기 로드 (모바일 기능 정상 동작을 위해) -->
-    <script src="script.js"></script>
-
-    <!-- 플로팅 액션 버튼들 (Safari z-index 이슈 방지를 위해 body 직속으로 이동) -->
-    <div class="floating-actions">
-        <button class="floating-btn" title="위치">
-            <i class="fas fa-crosshairs"></i>
-        </button>
-        <button class="floating-btn" title="즐겨찾기" style="display: none;">
-            <i class="fas fa-star"></i>
-        </button>
-        <button class="floating-btn" title="레이어" style="display: none;">
-            <i class="fas fa-layer-group"></i>
-        </button>
-    </div>
-
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-930VGD9QPS"></script>
     <script>
-        // Google Analytics 설정
         window.dataLayer = window.dataLayer || [];
         function gtag() { dataLayer.push(arguments); }
         gtag('js', new Date());
+
         gtag('config', 'G-930VGD9QPS');
     </script>
-</body>
-<!-- Google Tag Manager (noscript) -->
-<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-M36CX7BQ" height="0" width="0"
-        style="display:none;visibility:hidden"></iframe></noscript>
-<!-- End Google Tag Manager (noscript) -->
-
+  </head>
+  <body>
+    <!-- Google Tag Manager (noscript) -->
+    <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-M36CX7BQ" height="0" width="0"
+            style="display:none;visibility:hidden"></iframe></noscript>
+    <!-- End Google Tag Manager (noscript) -->
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
 </html>
+
