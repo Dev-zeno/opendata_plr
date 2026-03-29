@@ -30,6 +30,7 @@ export default function App() {
     } catch { return { notificationsEnabled: false, darkMode: false }; }
   });
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [locationError, setLocationError] = useState<string | null>(null);
 
   // Get user location on mount
   useEffect(() => {
@@ -40,11 +41,19 @@ export default function App() {
             lat: position.coords.latitude,
             lng: position.coords.longitude,
           });
+          setLocationError(null);
         },
         (error) => {
           console.error('Error getting location:', error);
-        }
+          if (error.code === 1) setLocationError('위치 권한 거부됨 (브라우저 또는 OS 설정 확인)');
+          else if (error.code === 2) setLocationError('위치 정보를 사용할 수 없음 (Wi-Fi 켜짐 확인)');
+          else if (error.code === 3) setLocationError('위치 요청 시간 초과');
+          else setLocationError(`위치 에러: ${error.message}`);
+        },
+        { enableHighAccuracy: false, timeout: 5000, maximumAge: Infinity }
       );
+    } else {
+      setLocationError('이 브라우저는 위치 기능을 지원하지 않습니다.');
     }
   }, []);
 
@@ -163,7 +172,8 @@ export default function App() {
             availableSeats,
             lastUpdated: new Date().toISOString(),
             rooms,
-            predictions: [] // Can add mock predictions here if needed
+            predictions: [], // Can add mock predictions here if needed
+            homepage: lib.siteUrlAddr || undefined
           };
         });
 
@@ -279,11 +289,21 @@ export default function App() {
                 </section>
 
                 {/* Content Header */}
-                <section className="flex items-center justify-between">
+                <section className="flex flex-col md:flex-row md:items-center justify-between gap-2">
                   <h2 className="text-xl font-black text-slate-900">
                     {selectedRegion === '전체' ? '전국' : selectedRegion} 도서관
                     <span className="text-sm font-medium text-slate-400 ml-2">{filteredLibraries.length}개 검색됨</span>
                   </h2>
+                  {locationError && (
+                    <div className="text-xs font-bold text-red-500 bg-red-50 px-3 py-1.5 rounded-lg inline-flex items-center w-fit">
+                      📍 {locationError}
+                    </div>
+                  )}
+                  {userLocation && (
+                    <div className="text-xs font-bold text-green-600 bg-green-50 px-3 py-1.5 rounded-lg inline-flex items-center w-fit">
+                      📍 내 위치 기반 거리순 정렬 활성화
+                    </div>
+                  )}
                 </section>
 
                 {isLoading ? (
@@ -479,7 +499,7 @@ export default function App() {
       {/* Library Detail Overlay - Responsive width */}
       <AnimatePresence>
         {selectedLibrary && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-0 md:p-6 bg-black/20 backdrop-blur-sm">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-0 md:p-6 bg-white">
             <div className="w-full h-full md:max-w-2xl md:h-[90vh] md:rounded-3xl overflow-hidden shadow-2xl">
               <LibraryDetail
                 library={selectedLibrary}

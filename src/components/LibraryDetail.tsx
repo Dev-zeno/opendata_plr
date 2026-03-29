@@ -13,8 +13,9 @@ interface LibraryDetailProps {
 }
 
 export default function LibraryDetail({ library, isFavorite, onToggleFavorite, onBack }: LibraryDetailProps) {
-  const [activeRoomUrl, setActiveRoomUrl] = useState<string | null>(null);
+  const [activeRoom, setActiveRoom] = useState<ReadingRoom | null>(null);
   const [isLoadingProxy, setIsLoadingProxy] = useState(false);
+  const [showNoDataModal, setShowNoDataModal] = useState(false);
   const occupancy = library.totalSeats > 0 ? (library.usedSeats / library.totalSeats) * 100 : 0;
   
   const data = [
@@ -38,8 +39,10 @@ export default function LibraryDetail({ library, isFavorite, onToggleFavorite, o
 
   const handleRoomClick = (room: ReadingRoom) => {
     if (room.url) {
-      setActiveRoomUrl(room.url);
+      setActiveRoom(room);
       setIsLoadingProxy(true);
+    } else {
+      setShowNoDataModal(true);
     }
   };
 
@@ -48,7 +51,7 @@ export default function LibraryDetail({ library, isFavorite, onToggleFavorite, o
       initial={{ opacity: 0, scale: 0.95, y: 20 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95, y: 20 }}
-      className="fixed inset-0 bg-slate-50/50 backdrop-blur-xl z-50 overflow-y-auto flex flex-col"
+      className="fixed inset-0 bg-white z-50 overflow-y-auto flex flex-col"
     >
       {/* Header */}
       <header className="sticky top-0 glass-panel border-b border-white/20 px-6 py-4 flex items-center justify-between z-10">
@@ -189,51 +192,108 @@ export default function LibraryDetail({ library, isFavorite, onToggleFavorite, o
             </div>
           </div>
           
-          <div className="aspect-video bg-gray-100 rounded-2xl overflow-hidden relative group">
-            <img
-              src={`https://picsum.photos/seed/${library.id}/600/400`}
-              alt="Map placeholder"
-              className="w-full h-full object-cover opacity-50"
-              referrerPolicy="no-referrer"
-            />
-            <div className="absolute inset-0 flex items-center justify-center">
-              <button className="bg-white px-4 py-2 rounded-full shadow-lg text-sm font-bold text-gray-900 flex items-center gap-2 hover:bg-gray-50 transition-colors">
-                지도 앱에서 보기 <ExternalLink className="h-4 w-4" />
-              </button>
+          <a
+            href={`https://map.naver.com/p/search/${encodeURIComponent(library.name)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block aspect-video bg-gray-100 rounded-2xl overflow-hidden relative group cursor-pointer"
+          >
+            {/* OSM tile-based static map */}
+            {(() => {
+              const zoom = 16;
+              const n = Math.pow(2, zoom);
+              const latRad = library.lat * Math.PI / 180;
+              const xtile = Math.floor((library.lng + 180) / 360 * n);
+              const ytile = Math.floor((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2 * n);
+              const tiles = [];
+              for (let dy = -1; dy <= 1; dy++) {
+                for (let dx = -1; dx <= 1; dx++) {
+                  tiles.push({ x: xtile + dx, y: ytile + dy, dx, dy });
+                }
+              }
+              return (
+                <div className="absolute inset-0" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 256px)', gridTemplateRows: 'repeat(3, 256px)', justifyContent: 'center', alignContent: 'center' }}>
+                  {tiles.map(t => (
+                    <img
+                      key={`${t.x}-${t.y}`}
+                      src={`https://tile.openstreetmap.org/${zoom}/${t.x}/${t.y}.png`}
+                      alt=""
+                      className="w-[256px] h-[256px] block"
+                      draggable={false}
+                    />
+                  ))}
+                </div>
+              );
+            })()}
+            {/* Center pin marker */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-full pointer-events-none z-10">
+              <div className="flex flex-col items-center">
+                <div className="bg-red-500 text-white p-2 rounded-full shadow-lg shadow-red-200">
+                  <MapPin className="h-5 w-5" />
+                </div>
+                <div className="w-0 h-0 border-l-[6px] border-r-[6px] border-t-[8px] border-l-transparent border-r-transparent border-t-red-500 -mt-0.5" />
+              </div>
             </div>
-          </div>
+            {/* Attribution */}
+            <div className="absolute bottom-1 left-2 text-[9px] text-gray-500/70 z-10 pointer-events-none">
+              © OpenStreetMap contributors
+            </div>
+            {/* Hover overlay */}
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all duration-300 flex items-end justify-center pb-4 z-10">
+              <div className="opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300 bg-white/90 backdrop-blur-sm px-5 py-2.5 rounded-full shadow-lg text-sm font-bold text-gray-900 flex items-center gap-2">
+                네이버 지도에서 보기 <ExternalLink className="h-4 w-4" />
+              </div>
+            </div>
+          </a>
         </section>
       </main>
 
       {/* Footer CTA */}
       <footer className="p-4 bg-white border-t border-gray-100">
-        <button className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black text-lg shadow-lg shadow-blue-200 active:scale-95 transition-all">
-          도서관 홈페이지 방문하기
-        </button>
+        {library.homepage ? (
+          <a
+            href={library.homepage.startsWith('http') ? library.homepage : `https://${library.homepage}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full block text-center bg-blue-600 text-white py-4 rounded-2xl font-black text-lg shadow-lg shadow-blue-200 active:scale-95 transition-all"
+          >
+            도서관 홈페이지 방문하기
+          </a>
+        ) : (
+          <button 
+            disabled
+            className="w-full bg-gray-300 text-white py-4 rounded-2xl font-black text-lg shadow-none cursor-not-allowed"
+          >
+            홈페이지 정보 없음
+          </button>
+        )}
       </footer>
 
       {/* Room Status Proxy Modal */}
       <AnimatePresence>
-        {activeRoomUrl && (
+        {activeRoom && activeRoom.url && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex flex-col"
           >
-            <div className="bg-white flex items-center justify-between p-4 border-b border-gray-100">
-              <div className="flex items-center gap-2">
-                <div className="p-2 bg-blue-50 rounded-lg">
-                  <Info className="h-4 w-4 text-blue-600" />
-                </div>
-                <span className="font-bold text-gray-900">실시간 좌석 배치도</span>
-              </div>
+            <div className="bg-white flex items-center p-4 border-b border-gray-100 relative min-h-[64px]">
               <button 
-                onClick={() => setActiveRoomUrl(null)}
-                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                onClick={() => setActiveRoom(null)}
+                className="absolute left-4 p-2 hover:bg-gray-100 rounded-full transition-colors z-10"
               >
                 <X className="h-6 w-6 text-gray-500" />
               </button>
+              
+              <div className="w-full flex justify-center items-center gap-2 px-12">
+                <div className="p-2 bg-blue-50 rounded-lg shrink-0">
+                  <Info className="h-4 w-4 text-blue-600" />
+                </div>
+                <span className="font-bold text-gray-900 truncate text-center">
+                  {library.name} - {activeRoom.name} 실시간 좌석배치도
+                </span>
+              </div>
             </div>
             
             <div className="flex-1 bg-white relative">
@@ -245,7 +305,7 @@ export default function LibraryDetail({ library, isFavorite, onToggleFavorite, o
                 </div>
               )}
               <iframe
-                src={`/api/iframe-proxy?url=${encodeURIComponent(activeRoomUrl)}`}
+                src={`/api/iframe-proxy?url=${encodeURIComponent(activeRoom.url)}`}
                 className="w-full h-full border-none"
                 onLoad={() => setIsLoadingProxy(false)}
                 title="Room Status"
@@ -257,6 +317,45 @@ export default function LibraryDetail({ library, isFavorite, onToggleFavorite, o
                 본 정보는 도서관 공식 홈페이지의 실시간 데이터를 기반으로 제공됩니다.
               </p>
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* No Data Popup Modal */}
+      <AnimatePresence>
+        {showNoDataModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[70] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 shadow-2xl"
+            onClick={() => setShowNoDataModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 15 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 15 }}
+              className="bg-white rounded-[2rem] p-8 max-w-xs w-full shadow-2xl relative border border-gray-100"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="flex flex-col items-center justify-center text-center">
+                <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-5">
+                  <span className="text-3xl">🥺</span>
+                </div>
+                
+                <h3 className="text-lg font-black text-gray-900 mb-2">실시간 좌석정보가 없어요</h3>
+                <p className="text-sm font-medium text-gray-500 leading-relaxed">
+                  (도서관에서 제공을 안해요 😭)
+                </p>
+                
+                <button
+                  onClick={() => setShowNoDataModal(false)}
+                  className="mt-7 w-full py-3.5 bg-gray-100 hover:bg-gray-200 active:scale-95 text-gray-900 font-bold rounded-2xl transition-all"
+                >
+                  확인
+                </button>
+              </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

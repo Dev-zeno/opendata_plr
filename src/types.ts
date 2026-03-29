@@ -12,6 +12,7 @@ export interface Library {
   distance?: number;
   rooms: ReadingRoom[];
   predictions?: { hour: number; occupancy: number }[];
+  homepage?: string;
 }
 
 export interface ReadingRoom {
