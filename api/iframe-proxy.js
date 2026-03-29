@@ -23,6 +23,7 @@ module.exports = async function handler(req, res) {
     try {
         const parsedUrl = new URL(targetUrl);
         const client = parsedUrl.protocol === 'https:' ? https : http;
+        let finalUrl = targetUrl;
 
         const data = await new Promise((resolve, reject) => {
             function decodeBuffer(buffer, contentTypeHeader) {
@@ -53,6 +54,7 @@ module.exports = async function handler(req, res) {
                 // 리다이렉트 처리
                 if (response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
                     const redirectUrl = new URL(response.headers.location, targetUrl).href;
+                    finalUrl = redirectUrl;
                     const redirectClient = redirectUrl.startsWith('https:') ? https : http;
                     redirectClient.get(redirectUrl, {
                         headers: {
@@ -87,7 +89,7 @@ module.exports = async function handler(req, res) {
         let html = data;
 
         // <base> 태그 삽입으로 상대경로 CSS/JS/이미지 수정
-        const urlObj = new URL(targetUrl);
+        const urlObj = new URL(finalUrl);
         const basePath = urlObj.pathname.substring(0, urlObj.pathname.lastIndexOf('/') + 1);
         const protocol = urlObj.protocol.replace(':', '');
         const host = urlObj.host;
@@ -101,6 +103,22 @@ module.exports = async function handler(req, res) {
         } else {
             html = `${baseTag}${html}`;
         }
+
+        // 1. 중첩 iframe/frame 의 절대경로(http://...)를 iframe-proxy로 우회
+        html = html.replace(/(<i?frame[^>]*\ssrc=["'])(http:\/\/[^"']+)(["'][^>]*>)/gi, (match, prefix, url, suffix) => {
+            return `${prefix}/api/iframe-proxy?url=${encodeURIComponent(url)}${suffix}`;
+        });
+
+        // 2. 외부 리소스의 절대경로(http://...)를 resource-proxy로 우회
+        html = html.replace(/(<(?:img|link|script)[^>]*\s(?:src|href)=["'])(http:\/\/[^"']+)(["'][^>]*>)/gi, (match, prefix, url, suffix) => {
+            try {
+                const parsed = new URL(url);
+                const rmUrl = `/api/proxy/${parsed.protocol.replace(':', '')}/${parsed.host}${parsed.pathname}${parsed.search}`;
+                return `${prefix}${rmUrl}${suffix}`;
+            } catch(e) {
+                return match;
+            }
+        });
 
         // X-Frame-Options 제거하고 응답
         res.setHeader('Content-Type', 'text/html; charset=utf-8');
