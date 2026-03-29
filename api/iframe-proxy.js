@@ -89,8 +89,10 @@ module.exports = async function handler(req, res) {
         // <base> 태그 삽입으로 상대경로 CSS/JS/이미지 수정
         const urlObj = new URL(targetUrl);
         const basePath = urlObj.pathname.substring(0, urlObj.pathname.lastIndexOf('/') + 1);
-        const baseUrl = urlObj.origin + basePath;
-        const baseTag = `<base href="${baseUrl}">`;
+        const protocol = urlObj.protocol.replace(':', '');
+        const host = urlObj.host;
+        const mappedUrl = `/api/proxy/${protocol}/${host}${basePath}`;
+        const baseTag = `<base href="${mappedUrl}">`;
 
         if (html.includes('<head>')) {
             html = html.replace('<head>', `<head>${baseTag}`);

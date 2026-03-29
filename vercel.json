@@ -7,6 +7,10 @@
   },
   "rewrites": [
     {
+      "source": "/api/proxy/:protocol(https?)/:host/:path*",
+      "destination": "/api/resource-proxy?url=:protocol://:host/:path*"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
